@@ -9,6 +9,7 @@ use serde;
 use std::{io::Write, sync::atomic::AtomicBool};
 
 const CORRECTION_INTERVAL_MINUTES: i64 = 5;
+const N_SYMBOLS: usize = 750;
 
 #[derive(serde::Serialize)]
 struct FullOrderBook {
@@ -40,7 +41,7 @@ fn main() {
         Err(e) => panic!("Error: {:?}", e),
     };
 
-    let symbols = symbols.iter().take(750).collect::<Vec<&String>>();
+    let symbols = symbols.iter().take(N_SYMBOLS).collect::<Vec<&String>>();
 
     let keep_running = AtomicBool::new(true); // Used to control the event loop
     let depth = symbols
@@ -48,12 +49,12 @@ fn main() {
         .map(|symbol| format!("{}@depth@100ms", symbol))
         .collect::<Vec<String>>();
 
-    let mut full_book_correction_schedule = vec![chrono::Utc::now(); 750];
-    // spread full book correction schedule over the next 10 minutes -- equally space over 750 symbols
-    for i in 0..750 {
+    let mut full_book_correction_schedule = vec![chrono::Utc::now(); N_SYMBOLS];
+    // spread full book correction schedule over the next 10 minutes -- equally space over N_SYMBOLS symbols
+    for i in 0..N_SYMBOLS {
         full_book_correction_schedule[i] = full_book_correction_schedule[i]
             .checked_add_signed(chrono::Duration::minutes(
-                CORRECTION_INTERVAL_MINUTES * i as i64 / 750,
+                CORRECTION_INTERVAL_MINUTES * i as i64 / N_SYMBOLS as i64,
             ))
             .unwrap();
     }
