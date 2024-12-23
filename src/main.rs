@@ -10,7 +10,7 @@ use std::{io::Write, sync::atomic::AtomicBool};
 use tokio::sync::mpsc;
 use tokio::task;
 
-const CORRECTION_INTERVAL_MINUTES: i64 = 5;
+const CORRECTION_INTERVAL: i64 = 100;
 const N_SYMBOLS: usize = 750;
 
 #[derive(serde::Serialize)]
@@ -52,16 +52,8 @@ async fn main() {
         .map(|symbol| format!("{}@depth@100ms", symbol))
         .collect::<Vec<String>>();
 
-    let mut full_book_correction_schedule = vec![chrono::Utc::now(); N_SYMBOLS];
-    // spread full book correction schedule over the next 10 minutes -- equally space over N_SYMBOLS symbols
-    for i in 0..N_SYMBOLS {
-        full_book_correction_schedule[i] = full_book_correction_schedule[i]
-            .checked_add_signed(chrono::Duration::minutes(
-                CORRECTION_INTERVAL_MINUTES * i as i64 / N_SYMBOLS as i64,
-            ))
-            .unwrap();
-    }
-
+    let mut ticks_since_last_correction = vec![0; N_SYMBOLS];
+    
     let (tx, mut rx) = mpsc::channel::<String>(100);
 
     // Spawn a background task
@@ -139,17 +131,15 @@ async fn main() {
                     .iter()
                     .position(|s| **s == *symbol.to_lowercase())
                     .unwrap();
-                let correction_due = chrono::Utc::now() > full_book_correction_schedule[index];
 
-                if correction_due {
+                ticks_since_last_correction[index] += 1;
+
+                if ticks_since_last_correction[index] == CORRECTION_INTERVAL {
                     println!("Order correction for {}", symbol);
                     
                     tx.send(symbol.clone());
 
-                    // get time 10 minutes from now
-                    full_book_correction_schedule[index] = chrono::Utc::now()
-                        .checked_add_signed(chrono::Duration::minutes(CORRECTION_INTERVAL_MINUTES))
-                        .unwrap();
+                    ticks_since_last_correction[index] = 0;
                 }
             }
             _ => (),
