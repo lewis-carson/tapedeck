@@ -1,3 +1,5 @@
-/target
+target/
 data/
 Cargo.toml
+interleaver/target
+interleaver/Cargo.toml
