@@ -98,7 +98,7 @@ fn main() {
                     .unwrap();
                 let correction_due = chrono::Utc::now() > full_book_correction_schedule[index];
 
-                if false {
+                if correction_due {
                     println!("Order correction for {}", symbol);
                     // send order correction
                     let answer = match market.get_custom_depth(symbol, 500) {
