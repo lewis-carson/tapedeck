@@ -2,4 +2,4 @@ target/
 data/
 Cargo.toml
 interleaver/target
-interleaver/Cargo.toml
+interleaver/Cargo.lock
