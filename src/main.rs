@@ -137,7 +137,7 @@ async fn main() {
                 if ticks_since_last_correction[index] == CORRECTION_INTERVAL {
                     println!("Order correction for {}", symbol);
                     
-                    tx.send(symbol.clone());
+                    let _ = tx.send(symbol.clone());
 
                     ticks_since_last_correction[index] = 0;
                 }

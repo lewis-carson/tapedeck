@@ -1,7 +1,6 @@
 use std::fs::File;
 use std::io::{self, BufRead, BufReader};
 use std::path::PathBuf;
-use serde::{Deserialize};
 use serde::Serialize;
 use clap::Parser;
 
