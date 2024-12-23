@@ -33,7 +33,9 @@ def main():
             diff.append(line_data[smallest_time_index]["receive_time"] - 
                        line_data[smallest_time_index]["order_book"]["E"])
 
-        print(line_data[smallest_time_index]["receive_time"])
+        recv_time = line_data[smallest_time_index]["receive_time"]
+        symbol = line_data[smallest_time_index]["symbol"]
+        print(f"{recv_time} {symbol}")
 
         # Get next line from the generator that had the smallest time
         line_data[smallest_time_index] = next(generators[smallest_time_index])
