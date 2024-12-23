@@ -3,12 +3,12 @@ use std::{io::Write, sync::atomic::AtomicBool};
 use binance::futures::model::BookTickers::AllBookTickers;
 use serde;
 
-const ORDER_CORRECTION_INTERVAL: i32 = 100;
+const ORDER_CORRECTION_INTERVAL: i32 = 500;
 
 #[derive(serde::Serialize)]
 struct FullOrderBook {
     symbol: String,
-    recieve_time: u64,
+    receive_time: u64,
     order_book: OrderBook,
     is_partial: bool,
 }
@@ -16,7 +16,7 @@ struct FullOrderBook {
 #[derive(serde::Serialize)]
 struct PartialOrderBook {
     symbol: String,
-    recieve_time: u64,
+    receive_time: u64,
     order_book: DepthOrderBookEvent,
     is_partial: bool,
 }
@@ -50,7 +50,7 @@ fn main() {
 
             let depth_order_book = PartialOrderBook {
                 symbol: depth_order_book.symbol.to_string(),
-                recieve_time: recv_time,
+                receive_time: recv_time,
                 order_book: depth_order_book,
                 is_partial: true,
             };
@@ -89,7 +89,7 @@ fn main() {
 
                 let answer = FullOrderBook {
                     symbol: symbol.to_string(),
-                    recieve_time: recv_time,
+                    receive_time: recv_time,
                     order_book: answer,
                     is_partial: false,
                 };
