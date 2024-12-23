@@ -4,5 +4,5 @@ lobs/Cargo.lock
 interleaver/target/
 interleaver/Cargo.lock
 
-lobs/data/
-lobs/imported_data/
+data/
+imported_data/
