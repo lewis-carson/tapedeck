@@ -7,6 +7,8 @@ use binance::{
 };
 use serde;
 use std::{io::Write, sync::atomic::AtomicBool};
+use tokio::sync::mpsc;
+use tokio::task;
 
 const CORRECTION_INTERVAL_MINUTES: i64 = 5;
 const N_SYMBOLS: usize = 750;
@@ -27,7 +29,8 @@ struct PartialOrderBook {
     is_partial: bool,
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     // open lines in symbols file as vec
     let market: Market = Binance::new(None, None);
 
@@ -58,6 +61,45 @@ fn main() {
             ))
             .unwrap();
     }
+
+    let (tx, mut rx) = mpsc::channel::<String>(100);
+
+    // Spawn a background task
+    let handle = task::spawn(async move {
+        while let Some(symbol) = rx.recv().await {
+            let recv_time = chrono::Utc::now().timestamp_millis() as u64;
+
+            let file_name = format!("data/{}.json", symbol);
+
+            // create file if not exists
+            let mut file = std::fs::OpenOptions::new()
+                .create(true)
+                .write(true)
+                .append(true)
+                .open(&file_name)
+                .unwrap();
+
+            // send order correction
+            let answer = match market.get_custom_depth(&symbol, 500) {
+                Ok(answer) => answer,
+                Err(e) => panic!("Error: {}", e),
+            };
+
+            let answer = FullOrderBook {
+                symbol: symbol.to_string(),
+                receive_time: recv_time,
+                order_book: answer,
+                is_partial: false,
+            };
+
+            // serialise to json
+            let depth_order_book = serde_json::to_string(&answer).unwrap();
+
+            // write to file
+            file.write_all(depth_order_book.as_bytes()).unwrap();
+            file.write_all(b"\n").unwrap();
+        }
+    });
 
     let mut web_socket = WebSockets::new(|event: WebsocketEvent| {
         match event {
@@ -101,25 +143,8 @@ fn main() {
 
                 if correction_due {
                     println!("Order correction for {}", symbol);
-                    // send order correction
-                    let answer = match market.get_custom_depth(symbol, 500) {
-                        Ok(answer) => answer,
-                        Err(e) => panic!("Error: {}", e),
-                    };
-
-                    let answer = FullOrderBook {
-                        symbol: symbol.to_string(),
-                        receive_time: recv_time,
-                        order_book: answer,
-                        is_partial: false,
-                    };
-
-                    // serialise to json
-                    let depth_order_book = serde_json::to_string(&answer).unwrap();
-
-                    // write to file
-                    file.write_all(depth_order_book.as_bytes()).unwrap();
-                    file.write_all(b"\n").unwrap();
+                    
+                    tx.send(symbol.clone());
 
                     // get time 10 minutes from now
                     full_book_correction_schedule[index] = chrono::Utc::now()
@@ -141,4 +166,5 @@ fn main() {
             }
         }
     }
+    handle.await.unwrap();
 }
