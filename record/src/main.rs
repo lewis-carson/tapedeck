@@ -8,6 +8,7 @@ use binance::{
 use std::{io::Write, sync::atomic::AtomicBool};
 use tokio::sync::mpsc;
 use tokio::task;
+use std::env;
 
 const CORRECTION_INTERVAL: i64 = 100;
 const N_SYMBOLS: usize = 750;
@@ -17,6 +18,13 @@ use datatypes::{Event, EventType};
 
 #[tokio::main]
 async fn main() {
+    let args: Vec<String> = env::args().collect();
+    if args.len() < 2 {
+        eprintln!("Usage: {} <output-dir>", args[0]);
+        std::process::exit(1);
+    }
+    let output_dir = args[1].clone();
+
     // open lines in symbols file as vec
     let market: Market = Binance::new(None, None);
 
@@ -44,10 +52,12 @@ async fn main() {
 
     // Spawn a background task
     let handle = task::spawn(async move {
+        let output_dir = args[1].clone();
+        
         while let Some(symbol) = rx.recv().await {
             let recv_time = chrono::Utc::now().timestamp_millis() as u64;
 
-            let file_name = format!("../data/{}.json", symbol);
+            let file_name = format!("{}/{}.json", output_dir, symbol);
 
             // create file if not exists
             let mut file = std::fs::OpenOptions::new()
@@ -91,8 +101,8 @@ async fn main() {
                     EventType::PartialOrderBook(depth_order_book),
                 );
 
-                // append under ../data/{symbol} directory
-                let file_name = format!("../data/{}.json", symbol);
+                // append under {output_dir}/{symbol} directory
+                let file_name = format!("{}/{}.json", output_dir, symbol);
 
                 // create file if not exists
                 let mut file = std::fs::OpenOptions::new()

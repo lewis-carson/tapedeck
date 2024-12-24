@@ -3,7 +3,6 @@ use std::io::{self, BufRead, BufReader};
 use std::path::PathBuf;
 use std::u64;
 use datatypes::Event;
-use serde::{Serialize, Deserialize};
 use clap::Parser;
 
 #[derive(Parser, Debug)]
