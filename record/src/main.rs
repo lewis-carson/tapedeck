@@ -2,10 +2,9 @@ use binance::futures::model::BookTickers::AllBookTickers;
 use binance::{
     api::Binance,
     market::Market,
-    model::{DepthOrderBookEvent, OrderBook},
     websockets::*,
 };
-use serde;
+
 use std::{io::Write, sync::atomic::AtomicBool};
 use tokio::sync::mpsc;
 use tokio::task;
@@ -13,21 +12,8 @@ use tokio::task;
 const CORRECTION_INTERVAL: i64 = 100;
 const N_SYMBOLS: usize = 750;
 
-#[derive(serde::Serialize)]
-struct FullOrderBook {
-    symbol: String,
-    receive_time: u64,
-    order_book: OrderBook,
-    is_partial: bool,
-}
+use datatypes::{Event, EventType};
 
-#[derive(serde::Serialize)]
-struct PartialOrderBook {
-    symbol: String,
-    receive_time: u64,
-    order_book: DepthOrderBookEvent,
-    is_partial: bool,
-}
 
 #[tokio::main]
 async fn main() {
@@ -61,7 +47,7 @@ async fn main() {
         while let Some(symbol) = rx.recv().await {
             let recv_time = chrono::Utc::now().timestamp_millis() as u64;
 
-            let file_name = format!("data/{}.json", symbol);
+            let file_name = format!("../data/{}.json", symbol);
 
             // create file if not exists
             let mut file = std::fs::OpenOptions::new()
@@ -77,12 +63,11 @@ async fn main() {
                 Err(e) => panic!("Error: {}", e),
             };
 
-            let answer = FullOrderBook {
-                symbol: symbol.to_string(),
-                receive_time: recv_time,
-                order_book: answer,
-                is_partial: false,
-            };
+            let answer = Event::new(
+                symbol.clone(),
+                recv_time,
+                EventType::FullOrderBook(answer),
+            );
 
             // serialise to json
             let depth_order_book = serde_json::to_string(&answer).unwrap();
@@ -98,18 +83,16 @@ async fn main() {
             // 24hr rolling window ticker statistics for all symbols that changed in an array.
             WebsocketEvent::DepthOrderBook(depth_order_book) => {
                 let recv_time = chrono::Utc::now().timestamp_millis() as u64;
+                let symbol = depth_order_book.symbol.clone();
 
-                let depth_order_book = PartialOrderBook {
-                    symbol: depth_order_book.symbol.to_string(),
-                    receive_time: recv_time,
-                    order_book: depth_order_book,
-                    is_partial: true,
-                };
+                let depth_order_book = Event::new(
+                    depth_order_book.symbol.clone(),
+                    recv_time,
+                    EventType::PartialOrderBook(depth_order_book),
+                );
 
-                // append under data/{symbol} directory
-                let symbol = &depth_order_book.symbol;
-
-                let file_name = format!("data/{}.json", symbol);
+                // append under ../data/{symbol} directory
+                let file_name = format!("../data/{}.json", symbol);
 
                 // create file if not exists
                 let mut file = std::fs::OpenOptions::new()
@@ -135,9 +118,8 @@ async fn main() {
                 ticks_since_last_correction[index] += 1;
 
                 if ticks_since_last_correction[index] == CORRECTION_INTERVAL {
-                    println!("Order correction for {}", symbol);
                     
-                    let _ = tx.send(symbol.clone());
+                    let _ = futures::executor::block_on(tx.send(symbol.clone()));
 
                     ticks_since_last_correction[index] = 0;
                 }

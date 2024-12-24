@@ -1,6 +1,8 @@
 use std::fs::File;
 use std::io::{self, BufRead, BufReader};
 use std::path::PathBuf;
+use std::u64;
+use datatypes::Event;
 use serde::{Serialize, Deserialize};
 use clap::Parser;
 
@@ -9,13 +11,6 @@ use clap::Parser;
 struct Args {
     /// Path to the data directory
     path: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct LineData {
-    receive_time: f64,
-    #[serde(flatten)]
-    extra: serde_json::Value,
 }
 
 struct LineGenerator {
@@ -30,7 +25,7 @@ impl LineGenerator {
         })
     }
 
-    fn next_line(&mut self) -> Option<LineData> {
+    fn next_line(&mut self) -> Option<Event> {
         let mut line = String::new();
         match self.reader.read_line(&mut line) {
             Ok(0) => None,
@@ -61,15 +56,15 @@ fn main() -> io::Result<()> {
         .filter_map(|path| LineGenerator::new(path).ok())
         .collect();
 
-    let mut line_data: Vec<Option<LineData>> = generators
+    let mut line_data: Vec<Option<Event>> = generators
         .iter_mut()
         .map(|gen| gen.next_line())
         .collect();
 
     while line_data.iter().any(|data| data.is_some()) {
-        let times: Vec<f64> = line_data
+        let times: Vec<u64> = line_data
             .iter()
-            .map(|data| data.as_ref().map_or(f64::INFINITY, |d| d.receive_time))
+            .map(|data| data.as_ref().map_or(u64::MAX, |d| d.receive_time))
             .collect();
 
         let smallest_time_index = times
