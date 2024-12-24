@@ -10,5 +10,8 @@ replay/Cargo.lock
 datatypes/target/
 datatypes/Cargo.lock
 
+strategy/target/
+strategy/Cargo.lock
+
 data/
 imported_data/
