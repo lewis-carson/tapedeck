@@ -1,4 +1,3 @@
-# lobs
+# tapedeck
 
-A toolkit to record and replay binance market data.
-
+A toolkit to record and replay millisecond-level Binance order book data
