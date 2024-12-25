@@ -87,7 +87,7 @@ async fn main() {
             // send order correction
             let answer = match market.get_custom_depth(&symbol, 500) {
                 Ok(answer) => answer,
-                Err(e) => panic!("Error: {}", e),
+                Err(_) => continue,
             };
 
             let answer = Event::new(
