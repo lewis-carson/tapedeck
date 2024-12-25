@@ -1,21 +1,18 @@
 mod spinner;
 
 use binance::futures::model::BookTickers::AllBookTickers;
-use binance::{
-    api::Binance,
-    market::Market,
-    websockets::*,
-};
+use binance::{api::Binance, market::Market, websockets::*};
 
-use std::sync::atomic::{AtomicUsize, Ordering};
+use crossfire::mpsc;
+use human_repr::HumanCount;
+use std::env;
+use std::fmt::{self, Display, Formatter};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use std::{io::Write, sync::atomic::AtomicBool};
-use crossfire::mpsc;
 use tokio::task;
-use std::env;
 
-use indicatif::{ProgressBar, ProgressStyle};
+use indicatif::ProgressBar;
 use spinner::*;
 
 const CORRECTION_INTERVAL: i64 = 100;
@@ -23,15 +20,44 @@ const N_SYMBOLS: usize = 750;
 
 use datatypes::{Event, EventType};
 
+#[derive(Clone, Copy)]
+struct RunTimeStats {
+    n_data_points: usize,
+    bytes_written: usize,
+    n_full_books: usize,
+}
+
+impl RunTimeStats {
+    fn new() -> Self {
+        RunTimeStats {
+            n_data_points: 0,
+            bytes_written: 0,
+            n_full_books: 0,
+        }
+    }
+}
+
+impl Display for RunTimeStats {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            format!(
+                "[Symbols:   {}] [Samples: {:>7}] [Full book updates: {:>7}] [Written: {:>8}]",
+                N_SYMBOLS,
+                self.n_data_points.human_count_bare().to_string(),
+                self.n_full_books.human_count_bare().to_string(),
+                self.bytes_written.human_count_bytes().to_string()
+            )
+        )
+    }
+}
 
 #[tokio::main]
 async fn main() {
-    
     let pb = ProgressBar::new_spinner();
     pb.enable_steady_tick(Duration::from_millis(1_000));
     pb.set_style(spinner());
-    pb.set_message("Recording");
-     
 
     let args: Vec<String> = env::args().collect();
     if args.len() < 2 {
@@ -62,16 +88,20 @@ async fn main() {
         .collect::<Vec<String>>();
 
     let mut ticks_since_last_correction = vec![0; N_SYMBOLS];
+
+    let (tx, rx) = mpsc::bounded_tx_blocking_rx_future::<String>(10);
+
+    let runtime_stats = Arc::new(Mutex::new(RunTimeStats::new()));
+    let bg_runtime_stats = runtime_stats.clone();
     
-    let (tx, rx) = mpsc::bounded_tx_blocking_rx_future::<String>(N_SYMBOLS);
-
-    let n_data_points = Arc::new(Mutex::new(0));
-
     // Spawn a background task
     let handle = task::spawn(async move {
         let output_dir = args[1].clone();
-        
+
         while let Ok(symbol) = rx.recv().await {
+            //sleep for 1 second
+            tokio::time::sleep(Duration::from_millis(500)).await;
+
             let recv_time = chrono::Utc::now().timestamp_millis() as u64;
 
             let file_name = format!("{}/{}.json", output_dir, symbol);
@@ -86,15 +116,15 @@ async fn main() {
 
             // send order correction
             let answer = match market.get_custom_depth(&symbol, 500) {
-                Ok(answer) => answer,
-                Err(_) => continue,
+                Ok(answer) => {
+                    answer},
+                Err(_) => {
+                    println!("Error: {:?}", symbol);
+                    continue;
+                },
             };
 
-            let answer = Event::new(
-                symbol.clone(),
-                recv_time,
-                EventType::FullOrderBook(answer),
-            );
+            let answer = Event::new(symbol.clone(), recv_time, EventType::FullOrderBook(answer));
 
             // serialise to json
             let depth_order_book = serde_json::to_string(&answer).unwrap();
@@ -104,15 +134,21 @@ async fn main() {
             file.write_all(b"\n").unwrap();
 
             // increment data points counter
-            //*n_data_points.lock().unwrap() += 1;
+            // increment runtime stats
+            {
+                let mut stats = bg_runtime_stats.lock().unwrap();
+                stats.n_data_points += 1;
+                stats.n_full_books += 1;
+                stats.bytes_written += depth_order_book.as_bytes().len();
+            }
         }
     });
 
     let mut web_socket = WebSockets::new(|event: WebsocketEvent| {
         //println!("Event n: {:?}", n_data_points);
         {
-            let data_points = n_data_points.lock().unwrap();
-            pb.set_message(format!("Recording [{} data points]", data_points));
+            let runtime_stats = runtime_stats.lock().unwrap();
+            pb.set_message(runtime_stats.to_string());
         }
 
         match event {
@@ -140,6 +176,7 @@ async fn main() {
 
                 // serialise to json
                 let depth_order_book = serde_json::to_string(&depth_order_book).unwrap();
+                let bytes_written = depth_order_book.as_bytes().len();
 
                 // write to file
                 file.write_all(depth_order_book.as_bytes()).unwrap();
@@ -159,9 +196,11 @@ async fn main() {
                     ticks_since_last_correction[index] = 0;
                 }
 
-                // increment data points counter
+                // increment runtime stats
                 {
-                    *n_data_points.lock().unwrap() += 1;
+                    let mut stats = runtime_stats.lock().unwrap();
+                    stats.n_data_points += 1;
+                    stats.bytes_written += bytes_written;
                 }
             }
             _ => panic!("Error: {:?}", event),
@@ -179,5 +218,4 @@ async fn main() {
         }
     }
     handle.await.unwrap();
-
 }

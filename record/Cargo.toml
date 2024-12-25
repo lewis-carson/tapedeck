@@ -13,3 +13,4 @@ datatypes = { path = "../datatypes" }
 futures = "0.3.31"
 indicatif = "0.17.9"
 crossfire = "1.0.1"
+human-repr = "1.1.0"
