@@ -1,3 +1,5 @@
+mod spinner;
+
 use binance::futures::model::BookTickers::AllBookTickers;
 use binance::{
     api::Binance,
@@ -5,10 +7,16 @@ use binance::{
     websockets::*,
 };
 
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
 use std::{io::Write, sync::atomic::AtomicBool};
-use tokio::sync::mpsc;
+use crossfire::mpsc;
 use tokio::task;
 use std::env;
+
+use indicatif::{ProgressBar, ProgressStyle};
+use spinner::*;
 
 const CORRECTION_INTERVAL: i64 = 100;
 const N_SYMBOLS: usize = 750;
@@ -18,6 +26,13 @@ use datatypes::{Event, EventType};
 
 #[tokio::main]
 async fn main() {
+    
+    let pb = ProgressBar::new_spinner();
+    pb.enable_steady_tick(Duration::from_millis(1_000));
+    pb.set_style(spinner());
+    pb.set_message("Recording");
+     
+
     let args: Vec<String> = env::args().collect();
     if args.len() < 2 {
         eprintln!("Usage: {} <output-dir>", args[0]);
@@ -48,13 +63,15 @@ async fn main() {
 
     let mut ticks_since_last_correction = vec![0; N_SYMBOLS];
     
-    let (tx, mut rx) = mpsc::channel::<String>(100);
+    let (tx, rx) = mpsc::bounded_tx_blocking_rx_future::<String>(N_SYMBOLS);
+
+    let n_data_points = Arc::new(Mutex::new(0));
 
     // Spawn a background task
     let handle = task::spawn(async move {
         let output_dir = args[1].clone();
         
-        while let Some(symbol) = rx.recv().await {
+        while let Ok(symbol) = rx.recv().await {
             let recv_time = chrono::Utc::now().timestamp_millis() as u64;
 
             let file_name = format!("{}/{}.json", output_dir, symbol);
@@ -85,10 +102,19 @@ async fn main() {
             // write to file
             file.write_all(depth_order_book.as_bytes()).unwrap();
             file.write_all(b"\n").unwrap();
+
+            // increment data points counter
+            //*n_data_points.lock().unwrap() += 1;
         }
     });
 
     let mut web_socket = WebSockets::new(|event: WebsocketEvent| {
+        //println!("Event n: {:?}", n_data_points);
+        {
+            let data_points = n_data_points.lock().unwrap();
+            pb.set_message(format!("Recording [{} data points]", data_points));
+        }
+
         match event {
             // 24hr rolling window ticker statistics for all symbols that changed in an array.
             WebsocketEvent::DepthOrderBook(depth_order_book) => {
@@ -128,13 +154,17 @@ async fn main() {
                 ticks_since_last_correction[index] += 1;
 
                 if ticks_since_last_correction[index] == CORRECTION_INTERVAL {
-                    
-                    let _ = futures::executor::block_on(tx.send(symbol.clone()));
+                    let _ = tx.send(symbol.clone());
 
                     ticks_since_last_correction[index] = 0;
                 }
+
+                // increment data points counter
+                {
+                    *n_data_points.lock().unwrap() += 1;
+                }
             }
-            _ => (),
+            _ => panic!("Error: {:?}", event),
         };
 
         Ok(())
@@ -149,4 +179,5 @@ async fn main() {
         }
     }
     handle.await.unwrap();
+
 }
