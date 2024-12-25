@@ -15,8 +15,9 @@ use tokio::task;
 use indicatif::ProgressBar;
 use spinner::*;
 
-const CORRECTION_INTERVAL: i64 = 100;
-const N_SYMBOLS: usize = 750;
+const CORRECTION_INTERVAL: i64 = 50;
+const N_SYMBOLS: usize = 100;
+const CORRECTION_TIMEOUT: u64 = 500;
 
 use datatypes::{Event, EventType};
 
@@ -25,28 +26,37 @@ struct RunTimeStats {
     n_data_points: usize,
     bytes_written: usize,
     n_full_books: usize,
+    start_time: u64,
 }
 
 impl RunTimeStats {
     fn new() -> Self {
         RunTimeStats {
-            n_data_points: 0,
+            n_data_points: 1,
             bytes_written: 0,
-            n_full_books: 0,
+            n_full_books: 1,
+            start_time: chrono::Utc::now().timestamp_millis() as u64,
         }
+    }
+
+    fn elapsed_time(&self) -> u64 {
+        let current_time = chrono::Utc::now().timestamp_millis() as u64;
+        current_time - self.start_time
     }
 }
 
 impl Display for RunTimeStats {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        // full books / symbol
+        let fb_per_symbol_per_minute = (N_SYMBOLS as f64 * (self.elapsed_time() as f64 / 60_000.0)) / self.n_full_books as f64;
         write!(
             f,
             "{}",
             format!(
-                "[Symbols:   {}] [Samples: {:>7}] [Full book updates: {:>7}] [Written: {:>8}]",
+                "[Symbols:   {}] [Symbolm/fb {:.5}] [Samples: {:>7}] [Written: {:>8}]",
                 N_SYMBOLS,
+                fb_per_symbol_per_minute.to_string(),
                 self.n_data_points.human_count_bare().to_string(),
-                self.n_full_books.human_count_bare().to_string(),
                 self.bytes_written.human_count_bytes().to_string()
             )
         )
@@ -89,7 +99,7 @@ async fn main() {
 
     let mut ticks_since_last_correction = vec![0; N_SYMBOLS];
 
-    let (tx, rx) = mpsc::bounded_tx_blocking_rx_future::<String>(10);
+    let (tx, rx) = mpsc::bounded_tx_blocking_rx_future::<String>(N_SYMBOLS);
 
     let runtime_stats = Arc::new(Mutex::new(RunTimeStats::new()));
     let bg_runtime_stats = runtime_stats.clone();
@@ -99,8 +109,8 @@ async fn main() {
         let output_dir = args[1].clone();
 
         while let Ok(symbol) = rx.recv().await {
-            //sleep for 1 second
-            tokio::time::sleep(Duration::from_millis(500)).await;
+            // sleep to avoid binance kicking us off
+            tokio::time::sleep(Duration::from_millis(CORRECTION_TIMEOUT)).await;
 
             let recv_time = chrono::Utc::now().timestamp_millis() as u64;
 
@@ -119,7 +129,7 @@ async fn main() {
                 Ok(answer) => {
                     answer},
                 Err(_) => {
-                    println!("Error: {:?}", symbol);
+                    //println!("Error: {:?}", symbol);
                     continue;
                 },
             };
