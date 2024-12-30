@@ -16,12 +16,14 @@ fn main() {
         
         let mut flip = flip.lock().unwrap();
 
+        let first_symbol = events.keys().next().unwrap();
+
         if *flip {
             *flip = false;
-            vec![("BNBUSDT".to_string(), 0.01)]
+            vec![(first_symbol.to_string(), 0.01)]
         } else {
             *flip = true;
-            vec![("BNBUSDT".to_string(), -0.01)]
+            vec![(first_symbol.to_string(), -0.01)]
         }
     }) {
         indicator.update(&new_holdings, &last_events);

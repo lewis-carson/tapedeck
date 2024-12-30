@@ -3,4 +3,4 @@
 rm data/*
 mkdir -p data/
 
-cargo run --manifest-path record/Cargo.toml --release data/
+RUSTFLAGS="-Awarnings" cargo run -q --manifest-path record/Cargo.toml --release data/

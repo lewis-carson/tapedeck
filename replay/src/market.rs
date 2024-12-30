@@ -95,7 +95,7 @@ impl Market {
                 }
 
                 // lowest ask is the price we will pay
-                let price = lowest_ask.unwrap();
+                let price = lowest_ask.expect("Cannot find symbol in order book");
 
                 // calculate the cost
                 let cost = price * action.1;

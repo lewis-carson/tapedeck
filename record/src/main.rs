@@ -219,13 +219,18 @@ async fn main() {
         Ok(())
     });
 
-    web_socket.connect_multiple_streams(&depth).unwrap(); // check error
-    if let Err(e) = web_socket.event_loop(&keep_running) {
-        match e {
-            err => {
-                println!("Error: {:?}", err);
+    loop {
+        web_socket.connect_multiple_streams(&depth).unwrap(); // check error
+        if let Err(e) = web_socket.event_loop(&keep_running) {
+            match e {
+                err => {
+                    println!("Error: {:?}", err);
+                }
             }
         }
+
+        println!("Reconnecting in 5 seconds...");
+        tokio::time::sleep(Duration::from_secs(5)).await;
     }
-    handle.await.unwrap();
+    // handle.await.unwrap();
 }
