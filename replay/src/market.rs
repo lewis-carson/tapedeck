@@ -7,8 +7,8 @@ use datatypes::{Event, EventType};
 use reader::{EventGrouper, EventIterator};
 use partial_transformer::PartialTransformer;
 
-#[derive(Debug)]
-pub struct Holdings (HashMap<String, f64>);
+#[derive(Clone, Debug)]
+pub struct Holdings (pub HashMap<String, f64>);
 
 impl Holdings {
     pub fn new_cash(cash: f64) -> Self {
@@ -16,10 +16,24 @@ impl Holdings {
         h.insert("USD".to_string(), cash);
         Self(h)
     }
+
+    pub fn total_value(&self, lowest_asks: &HashMap<String, f64>) -> f64 {
+        let mut total = 0.0;
+
+        for (symbol, amount) in self.0.iter() {
+            let price = lowest_asks.get(symbol).unwrap_or(&0.0);
+            total += price * amount;
+        }
+
+        total += *self.0.get("USD").unwrap_or(&0.0);
+
+        total
+    }
 }
 
 
 pub type OrderBundle = Vec<(String, f64)>;
+
 
 pub struct Market {
     reader: Box<dyn io::BufRead>,
@@ -37,7 +51,7 @@ impl Market {
     }
 
     // takes closure as argument
-    pub fn run(mut self, f: impl Fn(&Holdings, &OrderBookCollection) -> OrderBundle) -> Holdings {
+    pub fn run(mut self, f: impl Fn(&Holdings, &OrderBookCollection) -> OrderBundle) -> impl Iterator<Item = (Holdings, HashMap<String, OrderBook>)> {
         let event_iter = Box::new(EventIterator::new(self.reader));
         let transformed_partials = Box::new(PartialTransformer::new(event_iter));
         let grouped_events = EventGrouper::new(transformed_partials);
@@ -55,7 +69,7 @@ impl Market {
             Some(acc.clone())
         });
 
-        for chunk in folded_events {
+        folded_events.map(move |chunk| {
             let actions = f(&self.holdings, &chunk);
 
             for action in actions {
@@ -99,8 +113,8 @@ impl Market {
                 self.holdings.0.insert(symbol, new_target_amount);
                 self.holdings.0.insert("USD".to_string(), available_usd - (price * amount_to_buy));
             }
-        }
 
-        self.holdings
+            (self.holdings.clone(), chunk.clone())
+        })
     }
 }
