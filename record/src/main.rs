@@ -140,8 +140,8 @@ async fn main() {
             let depth_order_book = serde_json::to_string(&answer).unwrap();
 
             // write to file
-            file.write_all(depth_order_book.as_bytes()).unwrap();
-            file.write_all(b"\n").unwrap();
+            let to_write = format!("{}\n", depth_order_book);
+            file.write_all(to_write.as_bytes()).unwrap();
 
             // increment data points counter
             // increment runtime stats
@@ -188,9 +188,8 @@ async fn main() {
                 let depth_order_book = serde_json::to_string(&depth_order_book).unwrap();
                 let bytes_written = depth_order_book.as_bytes().len();
 
-                // write to file
-                file.write_all(depth_order_book.as_bytes()).unwrap();
-                file.write_all(b"\n").unwrap();
+                let to_write = format!("{}\n", depth_order_book);
+                file.write_all(to_write.as_bytes()).unwrap();
 
                 // check if full order book correction is due
                 let index = symbols

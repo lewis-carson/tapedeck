@@ -53,8 +53,8 @@ impl Market {
     // takes closure as argument
     pub fn run(mut self, f: impl Fn(&Holdings, &OrderBookCollection) -> OrderBundle) -> impl Iterator<Item = (Holdings, HashMap<String, OrderBook>)> {
         let event_iter = Box::new(EventIterator::new(self.reader));
-        let transformed_partials = Box::new(PartialTransformer::new(event_iter));
-        let grouped_events = EventGrouper::new(transformed_partials);
+
+        let grouped_events = EventGrouper::new(event_iter);
 
         let folded_events = grouped_events.scan(HashMap::new(), |acc, event_group| {
             for event in event_group {
