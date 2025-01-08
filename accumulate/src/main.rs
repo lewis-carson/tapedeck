@@ -5,7 +5,6 @@ use partial_transformer::PartialTransformer;
 use reader::EventIterator;
 
 use std::io::{self, BufRead};
-use datatypes::EventType::FullOrderBook;
 
 fn main() -> io::Result<()> {
     let stdin = io::stdin();
