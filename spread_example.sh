@@ -1,4 +1,4 @@
-interleave data2/ |
+interleave data/ |
 accumulate |
 jq '{
     symbol: .symbol,

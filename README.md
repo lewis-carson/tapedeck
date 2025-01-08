@@ -24,20 +24,40 @@ Notes on recording:
 
 ## Usage
 
+Install:
+
 ```bash
 just install-all
 ```
+
+Record:
 
 ```bash
 mkdir data/
 record data/
 ```
 
+Play back + accumulate full order books:
 ```bash
 interleave data/ | accumulate
 ```
 
+Stream live data from `server` + accumulate full order books:
+```bash
+ssh server -t 'tail -fq /path/to/data/*' | accumulate
+```
+
+Stream live data from `server` + accumulate full order books + extract symbols and midpoints:
 ```bash
 ssh server -t 'tail -fq /path/to/data/*'
 | accumulate
-```
+| jq '{
+    symbol: .symbol,
+    midpoint: (
+    (
+        (.event.FullOrderBook.asks[0].price | tonumber) +
+        (.event.FullOrderBook.bids[0].price | tonumber)
+    )/2
+    )
+}'
+`
