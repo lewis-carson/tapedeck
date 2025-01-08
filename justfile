@@ -1,4 +1,3 @@
-export RUSTFLAGS := "-Awarnings"
 
 install PROJECT:
     cargo install --path {{PROJECT}}
@@ -6,6 +5,7 @@ install PROJECT:
 install-all:
     just install record
     just install interleave
+    just install accumulate
 
 run PROJECT:
     cargo run --manifest-path {{PROJECT}}/Cargo.toml
@@ -17,8 +17,8 @@ reset DIR:
 record DIR:
     just reset {{DIR}}
     
-    cargo run -q --manifest-path record/Cargo.toml --release {{DIR}}
+    RUSTFLAGS="-Awarnings" cargo run -q --manifest-path record/Cargo.toml --release {{DIR}}
 
 backtest DIR:
-    cargo run -q --release --manifest-path ./interleave/Cargo.toml {{DIR}} \
-    | cargo run -q --release --manifest-path ./strategy/Cargo.toml
+    RUSTFLAGS="-Awarnings" cargo run -q --release --manifest-path ./interleave/Cargo.toml {{DIR}} \
+    | RUSTFLAGS="-Awarnings" cargo run -q --release --manifest-path ./strategy/Cargo.toml

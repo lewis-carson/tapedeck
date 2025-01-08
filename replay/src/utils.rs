@@ -39,12 +39,15 @@ impl Indicator {
 
         let total_value = step.total_value(&lowest_asks);
 
+        // find holdings that are not zero
+        let holdings = step.0.iter().filter(|(_, v)| **v != 0.0).count() - 1;
         let symbols = last_events.len();
 
         let cash_percent = step.0.get("USD").unwrap_or(&0.0) / total_value * 100.0;
 
         let msg = format!(
-            "[{} symbols] [{:>5} total value] [{:.3}% cash]",
+            "[{}/{} symbols] [{:>5} total value] [{:.3}% cash]",
+            holdings,
             symbols,
             total_value as u64,
             cash_percent

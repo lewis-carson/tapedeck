@@ -7,6 +7,9 @@ interleave/Cargo.lock
 replay/target/
 replay/Cargo.lock
 
+accumulate/target/
+accumulate/Cargo.lock
+
 datatypes/target/
 datatypes/Cargo.lock
 

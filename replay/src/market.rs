@@ -117,4 +117,26 @@ impl Market {
             (self.holdings.clone(), chunk.clone())
         })
     }
+
+    pub fn run_without_actions(self) -> impl Iterator<Item = (u64, HashMap<String, OrderBook>)> {
+        let event_iter = Box::new(EventIterator::new(self.reader));
+        let transformed_partials = Box::new(PartialTransformer::new(event_iter));
+        let grouped_events = EventGrouper::new(transformed_partials);
+
+        grouped_events.scan(HashMap::new(), |acc, event_group| {
+
+            let timestamp = event_group.first().unwrap().receive_time;
+                
+            for event in event_group {
+                let ob = match event.event {
+                    EventType::FullOrderBook(order_book) => order_book,
+                    EventType::PartialOrderBook(_) => panic!("Should not have partial order book events"),
+                };
+
+                acc.insert(event.symbol, ob);
+            }
+
+            Some((timestamp, acc.clone()))
+        })
+    }
 }
