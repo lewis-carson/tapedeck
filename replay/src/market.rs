@@ -139,4 +139,9 @@ impl Market {
             Some((timestamp, acc.clone()))
         })
     }
+
+    pub fn run_raw_events(self) -> impl Iterator<Item = Event> {
+        let event_iter = Box::new(EventIterator::new(self.reader));
+        event_iter.map(|event_result| event_result.unwrap())
+    }
 }

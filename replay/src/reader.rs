@@ -60,3 +60,9 @@ impl Iterator for EventGrouper {
         Some(chunk)
     }
 }
+
+impl Drop for EventGrouper {
+    fn drop(&mut self) {
+        // Handle closing the pipe gracefully if necessary
+    }
+}

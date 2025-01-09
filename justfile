@@ -1,3 +1,4 @@
+export RUSTFLAGS := "-Zon-broken-pipe=kill -Awarnings"
 
 install PROJECT:
     cargo install --path {{PROJECT}}
@@ -7,8 +8,8 @@ install-all:
     just install interleave
     just install accumulate
 
-run PROJECT:
-    cargo run --manifest-path {{PROJECT}}/Cargo.toml
+run PROJECT *ARGS:
+    cargo run -q --release --manifest-path {{PROJECT}}/Cargo.toml {{ARGS}}
 
 reset DIR:
     rm -rf {{DIR}}
@@ -17,9 +18,9 @@ reset DIR:
 record DIR:
     just reset {{DIR}}
     
-    RUSTFLAGS="-Awarnings" cargo run -q --manifest-path record/Cargo.toml --release {{DIR}}
+    just run record {{DIR}}
 
 replay-example DIR:
-    RUSTFLAGS="-Awarnings" cargo run -q --release --manifest-path ./interleave/Cargo.toml {{DIR}} \
-    | RUSTFLAGS="-Awarnings" cargo run -q --release --manifest-path ./accumulate/Cargo.toml \
-    | RUSTFLAGS="-Awarnings" cargo run -q --release --manifest-path ./replay-example/Cargo.toml
+    just run interleave {{DIR}} \
+    | just run accumulate \
+    | just run replay-example
