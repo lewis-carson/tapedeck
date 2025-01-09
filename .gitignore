@@ -13,8 +13,9 @@ accumulate/Cargo.lock
 datatypes/target/
 datatypes/Cargo.lock
 
-strategy/target/
-strategy/Cargo.lock
+replay-example/target/
+replay-example/Cargo.lock
 
 data/
 imported_data/
+workspace/
