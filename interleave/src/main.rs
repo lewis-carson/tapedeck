@@ -49,7 +49,7 @@ fn get_files(path: &str) -> io::Result<Vec<PathBuf>> {
 fn main() -> io::Result<()> {
     let args = Args::parse();
     let files = get_files(&args.path)?;
-    
+
     let mut generators: Vec<LineGenerator> = files
         .into_iter()
         .filter_map(|path| LineGenerator::new(path).ok())

@@ -19,6 +19,7 @@ record DIR:
     
     RUSTFLAGS="-Awarnings" cargo run -q --manifest-path record/Cargo.toml --release {{DIR}}
 
-backtest DIR:
+replay-example DIR:
     RUSTFLAGS="-Awarnings" cargo run -q --release --manifest-path ./interleave/Cargo.toml {{DIR}} \
-    | RUSTFLAGS="-Awarnings" cargo run -q --release --manifest-path ./strategy/Cargo.toml
+    | RUSTFLAGS="-Awarnings" cargo run -q --release --manifest-path ./accumulate/Cargo.toml \
+    | RUSTFLAGS="-Awarnings" cargo run -q --release --manifest-path ./replay-example/Cargo.toml

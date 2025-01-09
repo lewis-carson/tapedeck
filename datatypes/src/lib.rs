@@ -1,4 +1,5 @@
 use binance::model::{DepthOrderBookEvent, OrderBook};
+use std::io::Write;
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
 pub enum EventType {
@@ -22,3 +23,29 @@ impl Event {
         }
     }
 }
+
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
+pub struct Snapshot {
+    events: Vec<Event>,
+}
+
+impl Snapshot {
+    pub fn new() -> Self {
+        Self { events: Vec::new() }
+    }
+
+    pub fn add_event(&mut self, event: Event) {
+        self.events.push(event);
+    }
+
+    pub fn write_to_file(&self, path: &str) -> std::io::Result<()> {
+        let mut file = std::fs::File::create(path)?;
+        // write each element of the vector to the file
+        for event in &self.events {
+            let serialized = serde_json::to_string(event).unwrap();
+            writeln!(file, "{}", serialized)?;
+        }
+        Ok(())
+    }
+}
+
