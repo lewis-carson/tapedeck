@@ -1,6 +1,7 @@
 use replay::{Market, OrderBundle, utils};
 use std::{io, sync::Mutex};
 use datatypes::Snapshot;
+use datatypes::EventType::FullOrderBook;
 
 fn main() {
     let stdin = io::stdin();
@@ -12,10 +13,15 @@ fn main() {
     let mut n = 0;
 
     for ev in market.run_raw_events() {
+        if n == 100 {
+            break;
+        }
+
+        snapshot.add_event(ev);
+
         n += 1;
     }
 
-    println!("Processed {} events", n);
+    snapshot.render_snapshot_to_image("test.png").unwrap();
 
-    snapshot.write_to_file("snapshot.json").unwrap();
 }

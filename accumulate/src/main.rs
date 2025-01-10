@@ -1,8 +1,9 @@
 mod partial_transformer;
-mod reader;
+
 
 use partial_transformer::PartialTransformer;
-use reader::EventIterator;
+use datatypes::reader::EventIterator;
+use std::io::Write;
 
 use std::io::{self, BufRead};
 
@@ -14,7 +15,10 @@ fn main() -> io::Result<()> {
     let transformed_partials = PartialTransformer::new(event_iter);
 
     for ob in transformed_partials {
-        println!("{}", serde_json::to_string(&ob.unwrap()).unwrap());
+        // instead of println, do this to prevent broken pipe errors
+        // the error still happens, we just ignore it
+        let mut stdout = io::stdout();
+        let _ = write!(stdout, "{}\n", serde_json::to_string(&ob.unwrap()).unwrap());
     }
 
     Ok(())

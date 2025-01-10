@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use std::u64;
 use datatypes::Event;
 use clap::Parser;
+use std::io::Write;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -74,7 +75,10 @@ fn main() -> io::Result<()> {
             .unwrap();
 
         if let Some(data) = &line_data[smallest_time_index] {
-            println!("{}", serde_json::to_string(data).unwrap());
+            // instead of println, do this to prevent broken pipe errors
+            // the error still happens, we just ignore it
+            let mut stdout = io::stdout();
+            let _ = write!(stdout, "{}\n", serde_json::to_string(data).unwrap());
         }
 
         line_data[smallest_time_index] = generators[smallest_time_index].next_line();

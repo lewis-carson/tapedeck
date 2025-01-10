@@ -6,3 +6,4 @@ edition = "2021"
 [dependencies]
 replay = { path = "../replay" }
 datatypes = { path = "../datatypes" }
+binance = "0.21.0"

@@ -1,6 +1,6 @@
 use std::io::{self, BufRead};
 use serde_json;
-use datatypes::Event;
+use crate::Event;
 
 pub struct EventIterator<R: BufRead> {
     reader: R,

@@ -1,5 +1,7 @@
+pub mod reader;
+
 use binance::model::{DepthOrderBookEvent, OrderBook};
-use std::io::Write;
+use std::io::{BufRead, Write};
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
 pub enum EventType {
@@ -45,6 +47,24 @@ impl Snapshot {
             let serialized = serde_json::to_string(event).unwrap();
             writeln!(file, "{}", serialized)?;
         }
+        Ok(())
+    }
+
+    pub fn read_from_file(path: &str) -> std::io::Result<Self> {
+        let file = std::fs::File::open(path)?;
+        let reader = std::io::BufReader::new(file);
+        let events: Vec<Event> = reader
+            .lines()
+            .map(|line| {
+                let line = line.unwrap();
+                serde_json::from_str(&line).unwrap()
+            })
+            .collect();
+        Ok(Self { events })
+    }
+
+    pub fn render_snapshot_to_image(&self, path: &str) -> std::io::Result<()> {
+        // use plotters to 
         Ok(())
     }
 }
