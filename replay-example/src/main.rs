@@ -17,11 +17,13 @@ fn main() {
             break;
         }
 
-        snapshot.add_event(ev);
+        if ev.symbol == "BTCUSDT"{
+            snapshot.add_event(ev);
+        }
 
         n += 1;
     }
 
-    snapshot.render_snapshot_to_image("test.png").unwrap();
+    snapshot.display().unwrap();
 
 }

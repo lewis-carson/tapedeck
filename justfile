@@ -9,8 +9,11 @@ export RUST_BACKTRACE := "1"
     just install interleave
     just install accumulate
 
-@run PROJECT *ARGS:
+@run-release PROJECT *ARGS:
     cargo run -q --release --manifest-path {{PROJECT}}/Cargo.toml {{ARGS}}
+
+@run PROJECT *ARGS:
+    cargo run -q --manifest-path {{PROJECT}}/Cargo.toml {{ARGS}}
 
 @reset DIR:
     rm -rf {{DIR}}
@@ -19,7 +22,7 @@ export RUST_BACKTRACE := "1"
 @record DIR:
     just reset {{DIR}}
     
-    just run record {{DIR}}
+    just run-release record {{DIR}}
 
 @replay-example DIR:
     just run interleave {{DIR}} \
