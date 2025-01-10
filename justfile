@@ -28,3 +28,6 @@ export RUST_BACKTRACE := "1"
     just run interleave {{DIR}} \
     | just run accumulate \
     | just run replay-example
+
+@watch DIR:
+    tail -fq {{DIR}}/* | python3 watch/main.py
