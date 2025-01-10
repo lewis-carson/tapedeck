@@ -24,6 +24,4 @@ fn main() {
         n += 1;
     }
 
-    snapshot.display().unwrap();
-
 }
