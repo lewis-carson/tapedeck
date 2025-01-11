@@ -48,7 +48,8 @@ impl RunTimeStats {
 impl Display for RunTimeStats {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         // full books / symbol
-        let fb_per_symbol_per_minute = (N_SYMBOLS as f64 * (self.elapsed_time() as f64 / 60_000.0)) / self.n_full_books as f64;
+        let fb_per_symbol_per_minute =
+            (N_SYMBOLS as f64 * (self.elapsed_time() as f64 / 60_000.0)) / self.n_full_books as f64;
         write!(
             f,
             "{}",
@@ -103,9 +104,9 @@ async fn main() {
 
     let runtime_stats = Arc::new(Mutex::new(RunTimeStats::new()));
     let bg_runtime_stats = runtime_stats.clone();
-    
+
     // Spawn a background task
-    let handle = task::spawn(async move {
+    let _ = task::spawn(async move {
         let output_dir = args[1].clone();
 
         while let Ok(symbol) = rx.recv().await {
@@ -126,12 +127,11 @@ async fn main() {
 
             // send order correction
             let answer = match market.get_custom_depth(&symbol, 500) {
-                Ok(answer) => {
-                    answer},
+                Ok(answer) => answer,
                 Err(_) => {
                     //println!("Error: {:?}", symbol);
                     continue;
-                },
+                }
             };
 
             let answer = Event::new(symbol.clone(), recv_time, EventType::FullOrderBook(answer));
@@ -154,71 +154,71 @@ async fn main() {
         }
     });
 
-    let mut web_socket = WebSockets::new(|event: WebsocketEvent| {
-        //println!("Event n: {:?}", n_data_points);
-        {
-            let runtime_stats = runtime_stats.lock().unwrap();
-            pb.set_message(runtime_stats.to_string());
-        }
-
-        match event {
-            // 24hr rolling window ticker statistics for all symbols that changed in an array.
-            WebsocketEvent::DepthOrderBook(depth_order_book) => {
-                let recv_time = chrono::Utc::now().timestamp_millis() as u64;
-                let symbol = depth_order_book.symbol.clone();
-
-                let depth_order_book = Event::new(
-                    depth_order_book.symbol.clone(),
-                    recv_time,
-                    EventType::PartialOrderBook(depth_order_book),
-                );
-
-                // append under {output_dir}/{symbol} directory
-                let file_name = format!("{}/{}.json", output_dir, symbol);
-
-                // create file if not exists
-                let mut file = std::fs::OpenOptions::new()
-                    .create(true)
-                    .write(true)
-                    .append(true)
-                    .open(&file_name)
-                    .unwrap();
-
-                // serialise to json
-                let depth_order_book = serde_json::to_string(&depth_order_book).unwrap();
-                let bytes_written = depth_order_book.as_bytes().len();
-
-                let to_write = format!("{}\n", depth_order_book);
-                file.write_all(to_write.as_bytes()).unwrap();
-
-                // check if full order book correction is due
-                let index = symbols
-                    .iter()
-                    .position(|s| **s == *symbol.to_lowercase())
-                    .unwrap();
-
-                ticks_since_last_correction[index] += 1;
-
-                if ticks_since_last_correction[index] == CORRECTION_INTERVAL {
-                    let _ = tx.send(symbol.clone());
-
-                    ticks_since_last_correction[index] = 0;
-                }
-
-                // increment runtime stats
-                {
-                    let mut stats = runtime_stats.lock().unwrap();
-                    stats.n_data_points += 1;
-                    stats.bytes_written += bytes_written;
-                }
-            }
-            _ => panic!("Error: {:?}", event),
-        };
-
-        Ok(())
-    });
-
     loop {
+        let mut web_socket = WebSockets::new(|event: WebsocketEvent| {
+            //println!("Event n: {:?}", n_data_points);
+            {
+                let runtime_stats = runtime_stats.lock().unwrap();
+                pb.set_message(runtime_stats.to_string());
+            }
+
+            match event {
+                // 24hr rolling window ticker statistics for all symbols that changed in an array.
+                WebsocketEvent::DepthOrderBook(depth_order_book) => {
+                    let recv_time = chrono::Utc::now().timestamp_millis() as u64;
+                    let symbol = depth_order_book.symbol.clone();
+
+                    let depth_order_book = Event::new(
+                        depth_order_book.symbol.clone(),
+                        recv_time,
+                        EventType::PartialOrderBook(depth_order_book),
+                    );
+
+                    // append under {output_dir}/{symbol} directory
+                    let file_name = format!("{}/{}.json", output_dir, symbol);
+
+                    // create file if not exists
+                    let mut file = std::fs::OpenOptions::new()
+                        .create(true)
+                        .write(true)
+                        .append(true)
+                        .open(&file_name)
+                        .unwrap();
+
+                    // serialise to json
+                    let depth_order_book = serde_json::to_string(&depth_order_book).unwrap();
+                    let bytes_written = depth_order_book.as_bytes().len();
+
+                    let to_write = format!("{}\n", depth_order_book);
+                    file.write_all(to_write.as_bytes()).unwrap();
+
+                    // check if full order book correction is due
+                    let index = symbols
+                        .iter()
+                        .position(|s| **s == *symbol.to_lowercase())
+                        .unwrap();
+
+                    ticks_since_last_correction[index] += 1;
+
+                    if ticks_since_last_correction[index] == CORRECTION_INTERVAL {
+                        let _ = tx.send(symbol.clone());
+
+                        ticks_since_last_correction[index] = 0;
+                    }
+
+                    // increment runtime stats
+                    {
+                        let mut stats = runtime_stats.lock().unwrap();
+                        stats.n_data_points += 1;
+                        stats.bytes_written += bytes_written;
+                    }
+                }
+                _ => panic!("Error: {:?}", event),
+            };
+
+            Ok(())
+        });
+
         web_socket.connect_multiple_streams(&depth).unwrap(); // check error
         if let Err(e) = web_socket.event_loop(&keep_running) {
             match e {
