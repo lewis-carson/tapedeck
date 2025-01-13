@@ -80,15 +80,8 @@ async fn main() {
     // open lines in symbols file as vec
     let market: Market = Binance::new(None, None);
 
-    let symbols = match market.get_all_book_tickers() {
-        Ok(answer) => {
-            let AllBookTickers(list) = answer;
-            list.into_iter()
-                .map(|ticker| ticker.symbol.to_lowercase())
-                .collect::<Vec<String>>()
-        }
-        Err(e) => panic!("Error: {:?}", e),
-    };
+    let symbols = vec!["bnbeth", "ethbtc", "btcusdt", "ethusdt", "bnbusdt"];
+    let symbols = symbols.iter().map(|s| s.to_string()).collect::<Vec<String>>();
 
     let symbols = symbols.iter().take(N_SYMBOLS).collect::<Vec<&String>>();
 
