@@ -48,8 +48,9 @@ layout.split_column(
 layout["logs"].split_row(Layout(name="partials"), Layout(name="fulls"))
 
 layout["world"].split_row(
-    Layout(ratio=3, name="worlds"),
+
     Layout(name="world_info"),
+    Layout(ratio=3, name="worlds"),
 
     Layout(name="trades")
 )
@@ -71,7 +72,7 @@ from time import sleep
 
 events = os.popen("tail -fq " + " ".join(sys.argv[1:]))
 worlds = os.popen("tail -fq " + " ".join(sys.argv[1:]) + " | just run accumulate")
-
+world_history = []
 with Live(layout, screen=True) as live:
     fmts = {
         "PartialOrderBook": "{event[receive_time]:<20} {event[symbol]}",
@@ -112,6 +113,12 @@ with Live(layout, screen=True) as live:
             elif stream == worlds:
                 world = json.loads(worlds.readline())
 
+                
+                world_history.append(world)
+
+                if len(world_history) > 100:
+                    world_history.pop(0)
+
                 books = [book for book in world["order_books"]]
 
                 table = Table(show_header=False, show_footer=False, expand=True)
@@ -120,20 +127,19 @@ with Live(layout, screen=True) as live:
                 table.add_row("# books", str(len(books)))
 
 
-                x = [randint(0, 10) for _ in range(200)]
+                data = lambda s: [float(world["order_books"][s]["bids"][0]["price"]) for world in world_history if s in world["order_books"]]
 
                 layout["graph1"].update(Panel(
-                    Graph(x),
-                    title="fewfew",
+                    Graph(data("BTCUSDT")),
+                    title="BTCUSDT",
                 ))
-
                 layout["graph2"].update(Panel(
-                    Graph(x),
-                    title="fewfew",
+                    Graph(data("ETHUSDT")),
+                    title="ETHUSDT",
                 ))
                 layout["graph3"].update(Panel(
-                    Graph(x),
-                    title="fewfew",
+                    Graph(data("BNBETH")),
+                    title="BNBETH",
                 ))
 
             live.refresh()
