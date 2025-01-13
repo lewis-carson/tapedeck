@@ -32,7 +32,7 @@ class Graph:
     def __rich_console__(self, console, options):
         width = options.max_width
         height = options.max_height
-        yield acp.plot(self.data[-width+10:], {"height": height})
+        yield acp.plot(self.data[-width+10:], {"height": height-1})
 
 
 console = Console()
@@ -52,6 +52,12 @@ layout["world"].split_row(
     Layout(name="world_info"),
 
     Layout(name="trades")
+)
+
+layout["worlds"].split_column(
+    Layout(name="graph1"),
+    Layout(name="graph2"),
+    Layout(name="graph3"),
 )
 
 layout["trades"].split_column(
@@ -116,7 +122,16 @@ with Live(layout, screen=True) as live:
 
                 x = [randint(0, 10) for _ in range(200)]
 
-                layout["worlds"].update(Panel(
+                layout["graph1"].update(Panel(
+                    Graph(x),
+                    title="fewfew",
+                ))
+
+                layout["graph2"].update(Panel(
+                    Graph(x),
+                    title="fewfew",
+                ))
+                layout["graph3"].update(Panel(
                     Graph(x),
                     title="fewfew",
                 ))
