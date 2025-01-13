@@ -1,6 +1,6 @@
 use std::{collections::HashMap, io};
 use binance::model::{DepthOrderBookEvent, OrderBook};
-use datatypes::{Event, EventType};
+use crate::{Event, EventType};
 
 
 fn update_full_order_book(ob: &mut OrderBook, dob: &DepthOrderBookEvent) {

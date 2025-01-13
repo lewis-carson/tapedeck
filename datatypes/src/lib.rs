@@ -1,4 +1,6 @@
 pub mod reader;
+pub mod partial_transformer;
+pub mod world_builder;
 
 use binance::model::{DepthOrderBookEvent, OrderBook};
 use serde::Deserialize;
