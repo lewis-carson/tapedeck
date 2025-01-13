@@ -10,6 +10,8 @@ from rich.console import Console, ConsoleOptions, RenderResult
 from collections import defaultdict
 from rich.panel import Panel
 import select
+import asciichartpy as acp
+from random import randint
 
 
 class ScrollToBottom:
@@ -21,6 +23,16 @@ class ScrollToBottom:
     ) -> RenderResult:
         height = options.max_height
         yield "\n".join(self.text[-height:])
+
+
+class Graph:
+    def __init__(self, data):
+        self.data = data
+
+    def __rich_console__(self, console, options):
+        width = options.max_width
+        height = options.max_height
+        yield acp.plot(self.data[-width+10:], {"height": height})
 
 
 console = Console()
@@ -37,7 +49,14 @@ layout["logs"].split_row(Layout(name="partials"), Layout(name="fulls"))
 
 layout["world"].split_row(
     Layout(ratio=3, name="worlds"),
-    Layout(name="world_info")
+    Layout(name="world_info"),
+
+    Layout(name="trades")
+)
+
+layout["trades"].split_column(
+    Layout(name="orders"),
+    Layout(name="fills"),
 )
 
 
@@ -94,6 +113,12 @@ with Live(layout, screen=True) as live:
 
                 table.add_row("# books", str(len(books)))
 
-                #layout["worlds2"].update(str(books))
+
+                x = [randint(0, 10) for _ in range(200)]
+
+                layout["worlds"].update(Panel(
+                    Graph(x),
+                    title="fewfew",
+                ))
 
             live.refresh()
