@@ -111,7 +111,7 @@ with Live(layout, screen=True) as live:
                     Panel(ScrollToBottom(histories["FullOrderBook"]), title="Full Order Books")
                 )
             elif stream == worlds:
-                world = json.loads(worlds.readline())
+                world = json.loads(line)
 
                 
                 world_history.append(world)
