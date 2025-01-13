@@ -24,10 +24,5 @@ export RUST_BACKTRACE := "1"
     
     just run-release record {{DIR}}
 
-@replay-example DIR:
-    just run interleave {{DIR}} \
-    | just run accumulate \
-    | just run replay-example
-
-@watch DIR:
-    tail -fq {{DIR}}/* | python3 watch/main.py
+@watch +FILES:
+    python3 watch/main.py {{FILES}}

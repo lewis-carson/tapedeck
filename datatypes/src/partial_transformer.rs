@@ -81,6 +81,9 @@ impl Iterator for PartialTransformer {
                         update_full_order_book(ob, dob);
                     }
                 }
+                _ => {
+                    return Some(Ok(ev.clone()));
+                }
             }
 
             // if we have a full order book for this symbol, we can create a new event
