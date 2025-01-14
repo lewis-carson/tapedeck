@@ -1,10 +1,10 @@
-use std::{collections::HashMap, io, ops::Deref, sync::Arc};
+use std::{collections::HashMap, fmt::{self, Display}, io, ops::Deref, sync::Arc};
 use binance::model::{DepthOrderBookEvent, OrderBook};
 use crate::{partial_transformer::PartialTransformer, Event, EventType};
 
-#[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Default)]
 pub struct World {
-    order_books: HashMap<String, OrderBook>
+    pub order_books: HashMap<String, OrderBook>
 }
 
 impl World {
@@ -19,7 +19,6 @@ impl World {
         self.order_books.insert(symbol, ob);
     }
 }
-
 
 pub struct WorldBuilder {
     stream: Box<dyn Iterator<Item = io::Result<Event>>>,
