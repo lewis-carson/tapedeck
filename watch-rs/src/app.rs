@@ -1,39 +1,94 @@
 use color_eyre::Result;
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use ratatui::{
+    DefaultTerminal, Frame,
+    layout::{Constraint, Direction, Layout},
     style::Stylize,
+    symbols::line,
     text::Line,
     widgets::{Block, Paragraph},
-    DefaultTerminal, Frame,
 };
-use std::io::{self, BufRead};
+use std::{
+    collections::HashMap, fs::File, io::{self, BufRead, BufReader}, sync::mpsc::channel, thread, time::Duration
+};
+
+/*
+let (tx, rx) = channel();
+
+// spawn a thread to read from /dev/stdin
+// entering raw mode in crossterm seems to break std::io::stdin
+thread::spawn(move || {
+    let file = File::open("/dev/stdin").unwrap();
+    for line in BufReader::new(file).lines() {
+        tx.send(line.unwrap()).ok();
+    }
+}); */
+
 
 #[derive(Debug, Default)]
-pub struct App<R> {
+pub struct App {
     /// Is the application running?
     running: bool,
-    /// BufRead for stdin input
-    input: R,
+    streams: HashMap<String, Vec<String>>,
+    streams_channels: HashMap<String, std::sync::mpsc::Receiver<String>>,
 }
 
-impl<R> App<R>
-where
-    R: BufRead,
-{
+impl App {
     /// Construct a new instance of [`App`].
-    pub fn new(input: R) -> Self {
-        Self {
-            running: false,
-            input,
-        }
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    fn new_stream(&mut self, name: &str, handle: impl Fn(&std::sync::mpsc::Sender<String>) + Send + 'static) {
+        let (tx, rx) = channel();
+        self.streams.insert(name.to_string(), Vec::new());
+        self.streams_channels.insert(name.to_string(), rx);
+
+        thread::spawn(move || {
+            handle(&tx);
+        });
+    }
+
+    fn launch_command(command: &str) -> impl Iterator<Item = String> {
+        let child = std::process::Command::new("sh")
+            .arg("-c")
+            .arg(command)
+            .stdout(std::process::Stdio::piped())
+            .spawn()
+            .unwrap();
+
+        let reader = BufReader::new(child.stdout.unwrap());
+        reader.lines().map(|line| line.unwrap())
     }
 
     /// Run the application's main loop.
     pub fn run(mut self, mut terminal: DefaultTerminal) -> Result<()> {
+        self.new_stream("fulls", |tx| {
+            // launch a command and read from its stdout
+            let command = "tail -fq data/*";
+            for line in Self::launch_command(command) {
+                let line: datatypes::Event = serde_json::from_str(&line).unwrap();
+                let symbol = line.symbol.clone();
+                
+                tx.send(symbol).ok();
+            }
+        });
+
+        self.new_stream("partials", |tx| {
+            // launch a command and read from its stdout
+            let command = "tail -fq data/*";
+            for line in Self::launch_command(command) {
+                let line: datatypes::Event = serde_json::from_str(&line).unwrap();
+                let symbol = line.symbol.clone();
+
+                tx.send(symbol).ok();
+            }
+        });
+
         self.running = true;
         while self.running {
             terminal.draw(|frame| self.draw(frame))?;
-            self.handle_input()?;
+            self.handle_crossterm_events()?;
         }
         Ok(())
     }
@@ -44,35 +99,134 @@ where
     /// - <https://docs.rs/ratatui/latest/ratatui/widgets/index.html>
     /// - <https://github.com/ratatui/ratatui/tree/master/examples>
     fn draw(&mut self, frame: &mut Frame) {
-        let title = Line::from("Ratatui Simple Template")
-            .bold()
-            .blue()
-            .centered();
-        let text = "Hello, Ratatui!\n\n\
-            Created using https://github.com/ratatui/templates\n\
-            Press `Esc`, `Ctrl-C` or `q` to stop running.";
+        for (name, rx) in self.streams_channels.iter() {
+            if let Ok(line) = rx.try_recv() {
+                self.streams.get_mut(name).unwrap().push(line);
+            }
+        }
+
+        let master_layout = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints(vec![
+                Constraint::Length(3),
+                Constraint::Fill(2),
+                Constraint::Fill(1),
+            ])
+            .split(frame.area());
+
+        let middle_layout = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints(vec![
+                Constraint::Fill(1),
+                Constraint::Fill(2),
+                Constraint::Fill(1)
+            ])
+            .split(master_layout[1]);
+
+        let middle_right_layout = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints(vec![
+                Constraint::Fill(1),
+                Constraint::Fill(1),
+            ])
+            .split(middle_layout[2]);
+
+        let bottom_layout = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints(vec![
+                Constraint::Fill(1),
+                Constraint::Fill(1),
+            ])
+            .split(master_layout[2]);
+
+        let header_area = master_layout[0];
+        let world_area = middle_layout[0];
+        let graph_area = middle_layout[1];
+        let orders_area = middle_right_layout[0];
+        let fills_area = middle_right_layout[1];
+        let fulls_area = bottom_layout[0];
+        let partials_area = bottom_layout[1];
+
         frame.render_widget(
-            Paragraph::new(text)
-                .block(Block::bordered().title(title))
+            Paragraph::new("top")
+                .block(Block::bordered().title("top"))
                 .centered(),
-            frame.area(),
-        )
+            header_area,
+        );
+
+        frame.render_widget(
+            Paragraph::new("left")
+                .block(Block::bordered().title("left"))
+                .centered(),
+            world_area,
+        );
+
+        frame.render_widget(
+            Paragraph::new("middle")
+                .block(Block::bordered().title("middle"))
+                .centered(),
+            graph_area,
+        );
+
+        frame.render_widget(
+            Paragraph::new("right")
+                .block(Block::bordered().title("right"))
+                .centered(),
+            orders_area,
+        );
+
+        frame.render_widget(
+            Paragraph::new("right")
+                .block(Block::bordered().title("right"))
+                .centered(),
+            fills_area,
+        );
+
+        let fulls = self.streams.get("fulls").unwrap().join("\n");
+        let fulls_offset = self.streams.get("fulls").unwrap().len().saturating_sub(fulls_area.height as usize - 2);
+
+        frame.render_widget(
+            Paragraph::new(fulls)
+                .scroll((fulls_offset as u16, 0))
+                .block(Block::bordered().title("bottom-left")),
+            fulls_area,
+        );
+
+
+        let partials = self.streams.get("partials").unwrap().join("\n");
+        let partials_offset = self.streams.get("partials").unwrap().len().saturating_sub(partials_area.height as usize - 2);
+        frame.render_widget(
+            Paragraph::new(partials)
+                .scroll((partials_offset as u16, 0))
+                .block(Block::bordered().title("bottom-right")),
+            partials_area,
+        );
     }
 
-    /// Reads the stdin input and updates the state of [`App`].
-    fn handle_input(&mut self) -> Result<()> {
-        let mut line = String::new();
-        if self.input.read_line(&mut line)? > 0 {
-            self.on_input(line);
+    /// Reads the crossterm events and updates the state of [`App`].
+    ///
+    /// If your application needs to perform work in between handling events, you can use the
+    /// [`event::poll`] function to check if there are any events available with a timeout.
+    fn handle_crossterm_events(&mut self) -> Result<()> {
+        if event::poll(Duration::from_millis(10))? {
+            match event::read()? {
+                // it's important to check KeyEventKind::Press to avoid handling key release events
+                Event::Key(key) if key.kind == KeyEventKind::Press => self.on_key_event(key),
+                Event::Mouse(_) => {}
+                Event::Resize(_, _) => {}
+                _ => {}
+            }
         }
+        
         Ok(())
     }
 
-    /// Handles the input and updates the state of [`App`].
-    fn on_input(&mut self, input: String) {
-        match input.trim() {
-            "q" | "Q" | "exit" | "quit" => self.quit(),
-            // Add other input handlers here.
+    /// Handles the key events and updates the state of [`App`].
+    fn on_key_event(&mut self, key: KeyEvent) {
+        match (key.modifiers, key.code) {
+            (_, KeyCode::Esc | KeyCode::Char('q'))
+            | (KeyModifiers::CONTROL, KeyCode::Char('c') | KeyCode::Char('C')) => self.quit(),
+            // Add other key handlers here.
             _ => {}
         }
     }

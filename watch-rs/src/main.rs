@@ -2,17 +2,10 @@ pub use app::App;
 
 pub mod app;
 
-use std::io;
-
 fn main() -> color_eyre::Result<()> {
     color_eyre::install()?;
     let terminal = ratatui::init();
-
-    let stdin = io::stdin(); 
-    let reader = stdin.lock();
-
-    let result = App::new(reader).run(terminal);
+    let result = App::new().run(terminal);
     ratatui::restore();
-
     result
 }

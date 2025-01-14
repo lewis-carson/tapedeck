@@ -23,6 +23,3 @@ export RUST_BACKTRACE := "1"
     just reset {{DIR}}
     
     just run-release record {{DIR}}
-
-@watch +FILES:
-    tail -fq {{FILES}} | just run watch-rs

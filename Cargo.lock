@@ -2207,7 +2207,9 @@ version = "0.1.0"
 dependencies = [
  "color-eyre",
  "crossterm",
+ "datatypes",
  "ratatui",
+ "serde_json",
 ]
 
 [[package]]
