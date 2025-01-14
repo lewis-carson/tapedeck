@@ -25,4 +25,4 @@ export RUST_BACKTRACE := "1"
     just run-release record {{DIR}}
 
 @watch +FILES:
-    tail -fq {{FILES}} | python3 watch/main.py
+    tail -fq {{FILES}} | just run watch-rs
