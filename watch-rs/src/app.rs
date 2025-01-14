@@ -9,19 +9,19 @@ use ratatui::{
 use std::io::{self, BufRead};
 
 #[derive(Debug, Default)]
-pub struct App<I> {
+pub struct App<R> {
     /// Is the application running?
     running: bool,
-    /// Iterator for stdin input
-    input: I,
+    /// BufRead for stdin input
+    input: R,
 }
 
-impl<I> App<I>
+impl<R> App<R>
 where
-    I: Iterator<Item = String>,
+    R: BufRead,
 {
     /// Construct a new instance of [`App`].
-    pub fn new(input: I) -> Self {
+    pub fn new(input: R) -> Self {
         Self {
             running: false,
             input,
@@ -61,7 +61,8 @@ where
 
     /// Reads the stdin input and updates the state of [`App`].
     fn handle_input(&mut self) -> Result<()> {
-        if let Some(line) = self.input.next() {
+        let mut line = String::new();
+        if self.input.read_line(&mut line)? > 0 {
             self.on_input(line);
         }
         Ok(())

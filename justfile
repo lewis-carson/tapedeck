@@ -2,7 +2,7 @@ export RUSTFLAGS := "-Awarnings"
 export RUST_BACKTRACE := "1"
 
 @install PROJECT:
-    cargo install -p {{PROJECT}}
+    cargo install - {{PROJECT}}
 
 @install-all:
     just install record
