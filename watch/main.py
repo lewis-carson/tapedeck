@@ -12,7 +12,7 @@ from rich.panel import Panel
 import select
 import asciichartpy as acp
 from random import randint
-
+import subprocess
 
 class ScrollToBottom:
     def __init__(self, text):
@@ -72,6 +72,7 @@ from time import sleep
 
 events = os.popen("tail -fq " + " ".join(sys.argv[1:]))
 worlds = os.popen("tail -fq " + " ".join(sys.argv[1:]) + " | just run accumulate")
+
 world_history = []
 with Live(layout, screen=True) as live:
     fmts = {

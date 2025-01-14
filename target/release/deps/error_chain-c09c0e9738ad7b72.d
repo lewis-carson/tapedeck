@@ -1,0 +1,11 @@
+/Users/lew/Projects/backtest/target/release/deps/liberror_chain-c09c0e9738ad7b72.rmeta: /Users/lew/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/error-chain-0.12.4/src/lib.rs /Users/lew/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/error-chain-0.12.4/src/impl_error_chain_kind.rs /Users/lew/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/error-chain-0.12.4/src/error_chain.rs /Users/lew/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/error-chain-0.12.4/src/quick_main.rs /Users/lew/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/error-chain-0.12.4/src/backtrace.rs
+
+/Users/lew/Projects/backtest/target/release/deps/liberror_chain-c09c0e9738ad7b72.rlib: /Users/lew/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/error-chain-0.12.4/src/lib.rs /Users/lew/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/error-chain-0.12.4/src/impl_error_chain_kind.rs /Users/lew/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/error-chain-0.12.4/src/error_chain.rs /Users/lew/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/error-chain-0.12.4/src/quick_main.rs /Users/lew/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/error-chain-0.12.4/src/backtrace.rs
+
+/Users/lew/Projects/backtest/target/release/deps/error_chain-c09c0e9738ad7b72.d: /Users/lew/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/error-chain-0.12.4/src/lib.rs /Users/lew/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/error-chain-0.12.4/src/impl_error_chain_kind.rs /Users/lew/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/error-chain-0.12.4/src/error_chain.rs /Users/lew/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/error-chain-0.12.4/src/quick_main.rs /Users/lew/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/error-chain-0.12.4/src/backtrace.rs
+
+/Users/lew/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/error-chain-0.12.4/src/lib.rs:
+/Users/lew/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/error-chain-0.12.4/src/impl_error_chain_kind.rs:
+/Users/lew/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/error-chain-0.12.4/src/error_chain.rs:
+/Users/lew/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/error-chain-0.12.4/src/quick_main.rs:
+/Users/lew/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/error-chain-0.12.4/src/backtrace.rs:

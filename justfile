@@ -2,7 +2,7 @@ export RUSTFLAGS := "-Awarnings"
 export RUST_BACKTRACE := "1"
 
 @install PROJECT:
-    cargo install --path {{PROJECT}}
+    cargo install -p {{PROJECT}}
 
 @install-all:
     just install record
@@ -10,10 +10,10 @@ export RUST_BACKTRACE := "1"
     just install accumulate
 
 @run-release PROJECT *ARGS:
-    cargo run -q --release --manifest-path {{PROJECT}}/Cargo.toml {{ARGS}}
+    cargo run -q --release -p {{PROJECT}} {{ARGS}}
 
 @run PROJECT *ARGS:
-    cargo run -q --manifest-path {{PROJECT}}/Cargo.toml {{ARGS}}
+    cargo run -q -p {{PROJECT}} {{ARGS}}
 
 @reset DIR:
     rm -rf {{DIR}}
@@ -25,4 +25,4 @@ export RUST_BACKTRACE := "1"
     just run-release record {{DIR}}
 
 @watch +FILES:
-    python3 watch/main.py {{FILES}}
+    tail -fq {{FILES}} | python3 watch/main.py
