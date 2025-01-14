@@ -1,2 +1,4 @@
 data/
 workspace/
+target/
+Cargo.toml
