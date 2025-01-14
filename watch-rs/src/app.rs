@@ -65,6 +65,8 @@ impl App {
 
     /// Run the application's main loop.
     pub fn run(mut self, mut terminal: DefaultTerminal) -> Result<()> {
+        terminal.clear();
+        
         self.new_stream("fulls", |tx| {
             // launch a command and read from its stdout
             let command = "tail -fq data/*";
@@ -116,7 +118,6 @@ impl App {
     /// - <https://docs.rs/ratatui/latest/ratatui/widgets/index.html>
     /// - <https://github.com/ratatui/ratatui/tree/master/examples>
     fn draw(&mut self, frame: &mut Frame) {
-        frame.render_widget(Clear, frame.area());
         for (name, rx) in self.streams_channels.iter() {
             if let Ok(line) = rx.try_recv() {
                 self.streams.get_mut(name).unwrap().push(line);
