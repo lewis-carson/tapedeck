@@ -2,12 +2,7 @@ use color_eyre::Result;
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use datatypes::world_builder::World;
 use ratatui::{
-    DefaultTerminal, Frame,
-    layout::{Constraint, Direction, Layout},
-    style::Stylize,
-    symbols::line,
-    text::Line,
-    widgets::{Block, Paragraph},
+    layout::{Constraint, Direction, Layout}, style::Stylize, symbols::line, text::Line, widgets::{Block, Clear, Paragraph}, DefaultTerminal, Frame
 };
 use std::{
     collections::HashMap, fs::File, io::{self, BufRead, BufReader}, sync::mpsc::channel, thread, time::Duration
@@ -121,6 +116,7 @@ impl App {
     /// - <https://docs.rs/ratatui/latest/ratatui/widgets/index.html>
     /// - <https://github.com/ratatui/ratatui/tree/master/examples>
     fn draw(&mut self, frame: &mut Frame) {
+        frame.render_widget(Clear, frame.area());
         for (name, rx) in self.streams_channels.iter() {
             if let Ok(line) = rx.try_recv() {
                 self.streams.get_mut(name).unwrap().push(line);
