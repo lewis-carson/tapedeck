@@ -198,7 +198,7 @@ impl App {
             .last()
             .map(|world| {
                 if let StreamObject::World(world) = world {
-                    format!("{:#?}", world)
+                    format!("{:#?}", world.order_books.len())
                 } else {
                     "".to_string()
                 }
