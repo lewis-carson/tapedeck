@@ -2,3 +2,4 @@ data/
 workspace/
 target/
 Cargo.lock
+.env

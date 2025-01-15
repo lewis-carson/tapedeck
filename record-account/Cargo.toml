@@ -1,0 +1,10 @@
+[package]
+name = "record-account"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+binance = "0.21.0"
+chrono = "0.4.39"
+datatypes = { path = "../datatypes" }
+serde_json = "1.0.135"

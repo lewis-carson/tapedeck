@@ -4,6 +4,6 @@ members = [
     "accumulate",
     "datatypes",
     "interleave",
-    "record",
+    "record", "record-account",
     "watch",
 ]

@@ -53,6 +53,7 @@ impl Iterator for WorldBuilder {
             EventType::FullOrderBook(ob) => {
                 self.world.update_order_book(symbol, ob);
             },
+            (_) => ()
         };
 
         Some(Ok(self.world.clone()))

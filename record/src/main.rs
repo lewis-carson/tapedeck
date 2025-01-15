@@ -1,14 +1,18 @@
 mod spinner;
 
+use binance::account::Account;
+use binance::config::Config;
+use binance::futures::model::AccountInformation;
 use binance::futures::model::BookTickers::AllBookTickers;
+use binance::userstream::UserStream;
 use binance::{api::Binance, market::Market, websockets::*};
 
 use crossfire::mpsc;
 use human_repr::HumanCount;
-use std::env;
 use std::fmt::{self, Display, Formatter};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
+use std::{env, vec};
 use std::{io::Write, sync::atomic::AtomicBool};
 use tokio::task;
 
@@ -75,13 +79,15 @@ async fn main() {
         eprintln!("Usage: {} <output-dir>", args[0]);
         std::process::exit(1);
     }
-    let output_dir = args[1].clone();
 
     // open lines in symbols file as vec
     let market: Market = Binance::new(None, None);
 
     let symbols = vec!["bnbeth", "ethbtc", "btcusdt", "ethusdt", "bnbusdt"];
-    let symbols = symbols.iter().map(|s| s.to_string()).collect::<Vec<String>>();
+    let symbols = symbols
+        .iter()
+        .map(|s| s.to_string())
+        .collect::<Vec<String>>();
 
     let symbols = symbols.iter().take(N_SYMBOLS).collect::<Vec<&String>>();
 
@@ -98,8 +104,11 @@ async fn main() {
     let runtime_stats = Arc::new(Mutex::new(RunTimeStats::new()));
     let bg_runtime_stats = runtime_stats.clone();
 
+    let output_dir = args[1].clone();
+
     // Spawn a background task
     let _ = task::spawn(async move {
+        let args = env::args().collect::<Vec<String>>();
         let output_dir = args[1].clone();
 
         while let Ok(symbol) = rx.recv().await {
@@ -205,6 +214,9 @@ async fn main() {
                         stats.n_data_points += 1;
                         stats.bytes_written += bytes_written;
                     }
+                }
+                WebsocketEvent::AccountUpdate(account_update) => {
+                    println!("Account Update: {:?}", account_update);
                 }
                 _ => panic!("Error: {:?}", event),
             };

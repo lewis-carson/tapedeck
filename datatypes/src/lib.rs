@@ -2,7 +2,7 @@ pub mod reader;
 pub mod partial_transformer;
 pub mod world_builder;
 
-use binance::model::{DepthOrderBookEvent, OrderBook};
+use binance::model::{AccountInformation, DepthOrderBookEvent, OrderBook};
 use serde::Deserialize;
 use core::panic;
 use std::io::{BufRead, Write};
@@ -11,6 +11,7 @@ use std::io::{BufRead, Write};
 pub enum EventType {
     FullOrderBook(OrderBook),
     PartialOrderBook(DepthOrderBookEvent),
+    AccountInformation(AccountInformation)
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]

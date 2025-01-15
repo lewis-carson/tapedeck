@@ -1,3 +1,5 @@
+set dotenv-required := true
+
 export RUSTFLAGS := "-Awarnings"
 export RUST_BACKTRACE := "1"
 
@@ -23,7 +25,4 @@ export RUST_BACKTRACE := "1"
 @record DIR:
     just reset {{DIR}}
     
-    just run-release record {{DIR}}
-
-@watch:
-    just run watch
+    just run-release record {{DIR}} & just run-release record-account {{DIR}} && fg
