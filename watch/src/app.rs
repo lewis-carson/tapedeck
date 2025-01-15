@@ -110,7 +110,7 @@ impl App {
             for line in Self::launch_command(command) {
                 let line: datatypes::Event = serde_json::from_str(&line).unwrap();
 
-                if let datatypes::EventType::OpenOrders(_) = line.event {
+                if let datatypes::EventType::OrderTradeEvent(_) = line.event {
                     tx.send(StreamObject::Event(line)).ok();
                 }
             }
@@ -138,6 +138,15 @@ impl App {
             self.handle_crossterm_events()?;
         }
         Ok(())
+    }
+
+    fn timestamp_to_string(timestamp: u64) -> String {
+        let receive_time = (timestamp / 1000) as i64;
+        let nanos = ((timestamp % 1000) * 1000000) as u32;
+        chrono::DateTime::from_timestamp(receive_time, nanos)
+            .unwrap()
+            .format("%H:%M:%S%.3f")
+            .to_string()
     }
 
     /// Renders the user interface.
@@ -250,25 +259,24 @@ impl App {
             .unwrap()
             .iter()
             .filter_map(|stream| {
-                if let StreamObject::Event(event) = stream {
-                    let receive_time = (event.receive_time / 1000) as i64;
-                    let nanos = ((event.receive_time % 1000) * 1000000) as u32;
-                    let time = chrono::DateTime::from_timestamp(receive_time, nanos)
-                        .unwrap()
-                        .format("%H:%M:%S%.3f")
-                        .to_string();
-
-                    let orders = if let EventType::OpenOrders(orders) = &event.event {
-                        orders
-                    } else {
-                        panic!("Expected OpenOrders event")
-                    };
-
-                    let orders_len = orders.len();
-
-                    Some(format!("{} | Open: {}", time, orders_len))
+                let event = if let StreamObject::Event(event) = stream {
+                    event
                 } else {
-                    None
+                    panic!("Expected Event")
+                };
+
+                if let EventType::OrderTradeEvent(order) = &event.event {
+                    let time = Self::timestamp_to_string(event.receive_time);
+                    Some(format!(
+                        "{} | {} | {} | {} | {}",
+                        time,
+                        order.symbol,
+                        order.side,
+                        order.price,
+                        order.qty,
+                    ))
+                } else {
+                    panic!("Expected OrderTradeEvent")
                 }
             })
             .collect::<Vec<_>>()
@@ -303,12 +311,7 @@ impl App {
             .iter()
             .filter_map(|stream| {
                 if let StreamObject::Event(event) = stream {
-                    let receive_time = (event.receive_time / 1000) as i64;
-                    let nanos = ((event.receive_time % 1000) * 1000000) as u32;
-                    let time = chrono::DateTime::from_timestamp(receive_time, nanos)
-                        .unwrap()
-                        .format("%H:%M:%S%.3f")
-                        .to_string();
+                    let time = Self::timestamp_to_string(event.receive_time);
                     Some(format!("{} | {}", time, event.symbol))
                 } else {
                     None
@@ -338,12 +341,7 @@ impl App {
             .iter()
             .filter_map(|stream| {
                 if let StreamObject::Event(event) = stream {
-                    let receive_time = (event.receive_time / 1000) as i64;
-                    let nanos = ((event.receive_time % 1000) * 1000000) as u32;
-                    let time = chrono::DateTime::from_timestamp(receive_time, nanos)
-                        .unwrap()
-                        .format("%H:%M:%S%.3f")
-                        .to_string();
+                    let time = Self::timestamp_to_string(event.receive_time);
 
                     let partial = if let EventType::PartialOrderBook(ob) = &event.event {
                         ob
