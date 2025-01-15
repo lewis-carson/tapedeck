@@ -95,12 +95,15 @@ impl App {
 
         self.new_stream("world", |tx| {
             // launch a command and read from its stdout
-            let command = "tail -fq data/* | accumulate";
-            // launch a command and read from its stdout
-            for line in Self::launch_command(command) {
-                let world: datatypes::world_builder::World = serde_json::from_str(&line).unwrap();
+            let command = "tail -fq data/*";
 
-                tx.send(StreamObject::World(world)).ok();
+            let world_builder = datatypes::world_builder::WorldBuilder::new(Box::new(Self::launch_command(command).map(|line| {
+                let event: datatypes::Event = serde_json::from_str(&line).unwrap();
+                Ok(event)
+            })));
+
+            for world in world_builder {
+                tx.send(StreamObject::World(world.unwrap())).ok();
             }
         });
 
