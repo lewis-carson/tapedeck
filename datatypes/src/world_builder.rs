@@ -1,22 +1,35 @@
 use std::{collections::HashMap, fmt::{self, Display}, io, ops::Deref, sync::Arc};
-use binance::model::{DepthOrderBookEvent, OrderBook};
+use binance::model::{AccountInformation, DepthOrderBookEvent, OrderBook};
 use crate::{partial_transformer::PartialTransformer, Event, EventType};
 
-#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Default)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
 pub struct World {
-    pub order_books: HashMap<String, OrderBook>
+    pub order_books: HashMap<String, OrderBook>,
+    pub account_information: Option<AccountInformation>,
+    pub open_orders: Vec<binance::model::Order>
 }
 
 impl World {
     pub fn new() -> Self {
         Self {
-            order_books: HashMap::new()
+            order_books: HashMap::new(),
+            account_information: None,
+            open_orders: Vec::new()
         }
     }
 
     pub fn update_order_book(&mut self, symbol: String, ob: OrderBook) {
         // insert or update order book
         self.order_books.insert(symbol, ob);
+    }
+
+    pub fn update_account_information(&mut self, account: AccountInformation) {
+        self.account_information = Some(account);
+    }
+
+    pub fn update_open_orders(&mut self, orders: Vec<binance::model::Order>) {
+        // insert or update open orders
+        self.open_orders = orders;
     }
 }
 
@@ -53,6 +66,12 @@ impl Iterator for WorldBuilder {
             EventType::FullOrderBook(ob) => {
                 self.world.update_order_book(symbol, ob);
             },
+            EventType::AccountInformation(account) => {
+                self.world.update_account_information(account);
+            },
+            EventType::OpenOrders(orders) => {
+                self.world.update_open_orders(orders);
+            }
             (_) => ()
         };
 

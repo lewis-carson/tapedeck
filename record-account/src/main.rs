@@ -25,6 +25,35 @@ fn main() {
     let account: Account = Binance::new_with_config(api_key_user, api_key_user_secret, &config);
 
     loop {
+        match account.get_all_open_orders() {
+            Ok(answer) => {
+                let event = Event::new(
+                    "account".to_string(),
+                    chrono::Utc::now().timestamp_millis() as u64,
+                    EventType::OpenOrders(answer),
+                );
+
+                let file_name = format!("{}/account.json", output_dir);
+
+                // create file if not exists
+                let mut file = std::fs::OpenOptions::new()
+                    .create(true)
+                    .write(true)
+                    .append(true)
+                    .open(&file_name)
+                    .unwrap();
+
+                // serialise to json
+                let account_info = serde_json::to_string(&event).unwrap();
+
+                // write to file
+                let to_write = format!("{}\n", account_info);
+                file.write_all(to_write.as_bytes()).unwrap();
+            }
+            Err(e) => {
+                println!("Error: {:?}", e);
+            }
+        }
         match account.get_account() {
             Ok(answer) => {
                 let event = Event::new(

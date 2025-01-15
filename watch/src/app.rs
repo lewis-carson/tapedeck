@@ -104,6 +104,18 @@ impl App {
             }
         });
 
+        self.new_stream("open_orders", |tx| {
+            // launch a command and read from its stdout
+            let command = "tail -fq data/*";
+            for line in Self::launch_command(command) {
+                let line: datatypes::Event = serde_json::from_str(&line).unwrap();
+
+                if let datatypes::EventType::OpenOrders(_) = line.event {
+                    tx.send(StreamObject::Event(line)).ok();
+                }
+            }
+        });
+
         self.new_stream("world", |tx| {
             // launch a command and read from its stdout
             let command = "tail -fq data/*";
@@ -198,7 +210,14 @@ impl App {
             .last()
             .map(|world| {
                 if let StreamObject::World(world) = world {
-                    format!("{:#?}", world.order_books.len())
+                    world.account_information.clone().map(|account| {
+                        account
+                            .balances
+                            .into_iter()
+                            .map(|balance| format!("{}: {}", balance.asset, balance.free))
+                            .collect::<Vec<_>>()
+                            .join("\n")
+                    }).unwrap_or("".to_string())
                 } else {
                     "".to_string()
                 }
@@ -215,8 +234,47 @@ impl App {
             graph_area,
         );
 
+        let open_orders = self
+            .streams
+            .get("open_orders")
+            .unwrap()
+            .iter()
+            .filter_map(|stream| {
+                if let StreamObject::Event(event) = stream {
+                    let receive_time = (event.receive_time / 1000) as i64;
+                    let nanos = ((event.receive_time % 1000) * 1000000) as u32;
+                    let time = chrono::DateTime::from_timestamp(receive_time, nanos)
+                        .unwrap()
+                        .format("%H:%M:%S%.3f")
+                        .to_string();
+
+                    let orders = if let EventType::OpenOrders(orders) = &event.event {
+                        orders
+                    } else {
+                        panic!("Expected OpenOrders event")
+                    };
+
+                    let orders_len = orders.len();
+
+                    Some(format!("{} | Open: {}", time, orders_len))
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        let open_orders_offset = self
+            .streams
+            .get("open_orders")
+            .unwrap()
+            .len()
+            .saturating_sub(orders_area.height as usize - 2);
+
         frame.render_widget(
-            Paragraph::new("").block(Block::bordered().title("Orders")),
+            Paragraph::new(open_orders)
+                .block(Block::bordered().title("Orders"))
+                .scroll((open_orders_offset as u16, 0)),
             orders_area,
         );
 

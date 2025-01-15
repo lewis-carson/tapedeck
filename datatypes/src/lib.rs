@@ -11,7 +11,8 @@ use std::io::{BufRead, Write};
 pub enum EventType {
     FullOrderBook(OrderBook),
     PartialOrderBook(DepthOrderBookEvent),
-    AccountInformation(AccountInformation)
+    AccountInformation(AccountInformation),
+    OpenOrders(Vec<binance::model::Order>)
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
