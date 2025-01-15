@@ -198,30 +198,7 @@ impl App {
             .last()
             .map(|world| {
                 if let StreamObject::World(world) = world {
-                    // get vec of order books
-                    let mut obs = world
-                        .order_books
-                        .keys()
-                        .map(|s| s.clone())
-                        .collect::<Vec<String>>();
-                    obs.sort();
-
-                    obs.into_iter()
-                        .map(|s| {
-                            let ob = world.order_books.get(&s).unwrap();
-                            let spread = if ob.bids.len() > 0 && ob.asks.len() > 0 {
-                                let best_bid = ob.bids.iter().next().unwrap().price;
-                                let best_ask = ob.asks.iter().next().unwrap().price;
-                                format!("{}", ((best_ask - best_bid) * 100.0))
-                            } else {
-                                "".to_string()
-                            };
-                            format!(
-                                "{s:<8} | {spread:.4}"
-                            )
-                        })
-                        .collect::<Vec<String>>()
-                        .join("\n")
+                    format!("{:#?}", world)
                 } else {
                     "".to_string()
                 }

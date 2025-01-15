@@ -5,5 +5,5 @@ members = [
     "datatypes",
     "interleave",
     "record",
-    "watch-rs",
+    "watch",
 ]

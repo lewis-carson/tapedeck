@@ -8,7 +8,7 @@ export RUST_BACKTRACE := "1"
     just install record
     just install interleave
     just install accumulate
-    just install watch-rs
+    just install watch
 
 @run-release PROJECT *ARGS:
     cargo run -q --release -p {{PROJECT}} {{ARGS}}
@@ -26,4 +26,4 @@ export RUST_BACKTRACE := "1"
     just run-release record {{DIR}}
 
 @watch:
-    just run watch-rs
+    just run watch
