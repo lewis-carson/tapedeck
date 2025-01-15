@@ -191,7 +191,7 @@ impl App {
 
         frame.render_widget(
             Paragraph::new(world)
-                .block(Block::bordered().title("left")),
+                .block(Block::bordered().title("World")),
             world_area,
         );
 
@@ -219,7 +219,10 @@ impl App {
         // map all of fulls to FullOrderBook vector
         let fulls = self.streams.get("fulls").unwrap().iter().filter_map(|stream| {
             if let StreamObject::Event(event) = stream {
-                Some(format!("{:?}", event.symbol))
+                let receive_time = (event.receive_time / 1000) as i64;
+                let nanos = ((event.receive_time % 1000) * 1000000) as u32;
+                let time = chrono::DateTime::from_timestamp(receive_time, nanos).unwrap().format("%H:%M:%S%.3f").to_string();
+                Some(format!("{} | {}", time, event.symbol))
             } else {
                 None
             }
@@ -230,14 +233,17 @@ impl App {
         frame.render_widget(
             Paragraph::new(fulls)
                 .scroll((fulls_offset as u16, 0))
-                .block(Block::bordered().title("bottom-left")),
+                .block(Block::bordered().title("Full Books")),
             fulls_area,
         );
 
 
         let partials = self.streams.get("partials").unwrap().iter().filter_map(|stream| {
             if let StreamObject::Event(event) = stream {
-                Some(format!("{:?}", event.symbol))
+                let receive_time = (event.receive_time / 1000) as i64;
+                let nanos = ((event.receive_time % 1000) * 1000000) as u32;
+                let time = chrono::DateTime::from_timestamp(receive_time, nanos).unwrap().format("%H:%M:%S%.3f").to_string();
+                Some(format!("{} | {}", time, event.symbol))
             } else {
                 None
             }
@@ -247,7 +253,7 @@ impl App {
         frame.render_widget(
             Paragraph::new(partials)
                 .scroll((partials_offset as u16, 0))
-                .block(Block::bordered().title("bottom-right")),
+                .block(Block::bordered().title("Partial Books")),
             partials_area,
         );
     }
