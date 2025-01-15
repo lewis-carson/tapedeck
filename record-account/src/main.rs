@@ -54,6 +54,8 @@ fn main() {
                 println!("Error: {:?}", e);
             }
         }
+        // sleep to avoid binance kicking us off
+        std::thread::sleep(std::time::Duration::from_millis(1000));
         match account.get_account() {
             Ok(answer) => {
                 let event = Event::new(
