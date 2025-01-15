@@ -127,6 +127,13 @@ impl App {
             }
         }
 
+        // cut streams down to 100 elements
+        for (_, stream) in self.streams.iter_mut() {
+            if stream.len() > 100 {
+                stream.drain(0..stream.len() - 100);
+            }
+        }
+
         let master_layout = Layout::default()
             .direction(Direction::Vertical)
             .constraints(vec![
