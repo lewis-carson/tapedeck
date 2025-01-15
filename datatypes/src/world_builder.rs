@@ -27,7 +27,7 @@ pub struct WorldBuilder {
 
 impl WorldBuilder {
     pub fn new(event_iter: Box<dyn Iterator<Item = io::Result<Event>>>) -> Self {
-        let partial_transformer = PartialTransformer::new(event_iter);
+        let partial_transformer = event_iter;
 
         Self {
             stream: Box::new(partial_transformer),
@@ -49,8 +49,9 @@ impl Iterator for WorldBuilder {
         let symbol = event.as_ref().unwrap().symbol.clone();
 
         match event.unwrap().event {
-            EventType::PartialOrderBook(_) => panic!("Partial order book found in final event stream"),
+            EventType::PartialOrderBook(_) => {},
             EventType::FullOrderBook(ob) => {
+                println!("{}", symbol);
                 self.world.update_order_book(symbol, ob);
             },
         };

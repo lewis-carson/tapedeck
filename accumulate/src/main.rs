@@ -16,7 +16,7 @@ fn main() -> io::Result<()> {
         // instead of println, do this to prevent broken pipe errors
         // the error still happens, we just ignore it
         let mut stdout = io::stdout();
-        let _ = write!(stdout, "{}\n", serde_json::to_string(&ob.unwrap()).unwrap());
+        //let _ = write!(stdout, "{}\n", serde_json::to_string(&ob.unwrap()).unwrap());
     }
 
     Ok(())
