@@ -1,4 +1,4 @@
 data/
 workspace/
 target/
-Cargo.toml
+Cargo.lock
