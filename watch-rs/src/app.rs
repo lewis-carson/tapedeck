@@ -1,13 +1,22 @@
 use color_eyre::Result;
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
-use datatypes::world_builder::World;
+use datatypes::{EventType, world_builder::World};
 use ratatui::{
-    layout::{Constraint, Direction, Layout}, style::Stylize, symbols::line, text::Line, widgets::{Block, Clear, Paragraph}, DefaultTerminal, Frame
+    DefaultTerminal, Frame,
+    layout::{Constraint, Direction, Layout},
+    style::Stylize,
+    symbols::line,
+    text::Line,
+    widgets::{Block, Clear, Paragraph},
 };
 use std::{
-    collections::HashMap, fs::File, io::{self, BufRead, BufReader}, sync::mpsc::channel, thread, time::Duration
+    collections::HashMap,
+    fs::File,
+    io::{self, BufRead, BufReader},
+    sync::mpsc::channel,
+    thread,
+    time::Duration,
 };
-
 
 /*
 let (tx, rx) = channel();
@@ -41,7 +50,11 @@ impl App {
         Self::default()
     }
 
-    fn new_stream(&mut self, name: &str, handle: impl Fn(&std::sync::mpsc::Sender<StreamObject>) + Send + 'static) {
+    fn new_stream(
+        &mut self,
+        name: &str,
+        handle: impl Fn(&std::sync::mpsc::Sender<StreamObject>) + Send + 'static,
+    ) {
         let (tx, rx) = channel();
         self.streams.insert(name.to_string(), Vec::new());
         self.streams_channels.insert(name.to_string(), rx);
@@ -66,7 +79,7 @@ impl App {
     /// Run the application's main loop.
     pub fn run(mut self, mut terminal: DefaultTerminal) -> Result<()> {
         terminal.clear();
-        
+
         self.new_stream("fulls", |tx| {
             // launch a command and read from its stdout
             let command = "tail -fq data/*";
@@ -76,7 +89,6 @@ impl App {
                 if let datatypes::EventType::FullOrderBook(_) = line.event {
                     tx.send(StreamObject::Event(line)).ok();
                 }
-                
             }
         });
 
@@ -92,15 +104,16 @@ impl App {
             }
         });
 
-
         self.new_stream("world", |tx| {
             // launch a command and read from its stdout
             let command = "tail -fq data/*";
 
-            let world_builder = datatypes::world_builder::WorldBuilder::new(Box::new(Self::launch_command(command).map(|line| {
-                let event: datatypes::Event = serde_json::from_str(&line).unwrap();
-                Ok(event)
-            })));
+            let world_builder = datatypes::world_builder::WorldBuilder::new(Box::new(
+                Self::launch_command(command).map(|line| {
+                    let event: datatypes::Event = serde_json::from_str(&line).unwrap();
+                    Ok(event)
+                }),
+            ));
 
             for world in world_builder {
                 tx.send(StreamObject::World(world.unwrap())).ok();
@@ -148,24 +161,18 @@ impl App {
             .constraints(vec![
                 Constraint::Fill(1),
                 Constraint::Fill(2),
-                Constraint::Fill(1)
+                Constraint::Fill(1),
             ])
             .split(master_layout[1]);
 
         let middle_right_layout = Layout::default()
             .direction(Direction::Vertical)
-            .constraints(vec![
-                Constraint::Fill(1),
-                Constraint::Fill(1),
-            ])
+            .constraints(vec![Constraint::Fill(1), Constraint::Fill(1)])
             .split(middle_layout[2]);
 
         let bottom_layout = Layout::default()
             .direction(Direction::Horizontal)
-            .constraints(vec![
-                Constraint::Fill(1),
-                Constraint::Fill(1),
-            ])
+            .constraints(vec![Constraint::Fill(1), Constraint::Fill(1)])
             .split(master_layout[2]);
 
         let header_area = master_layout[0];
@@ -184,58 +191,93 @@ impl App {
         );
 
         // if world stream has some length, destructure it to get the last element
-        let world = self.streams.get("world").unwrap().last().map(|world| {
-            if let StreamObject::World(world) = world {
-                // get vec of order books
-                let mut obs = world.order_books.keys().map(|s| s.clone()).collect::<Vec<String>>();
-                obs.sort();
+        let world = self
+            .streams
+            .get("world")
+            .unwrap()
+            .last()
+            .map(|world| {
+                if let StreamObject::World(world) = world {
+                    // get vec of order books
+                    let mut obs = world
+                        .order_books
+                        .keys()
+                        .map(|s| s.clone())
+                        .collect::<Vec<String>>();
+                    obs.sort();
 
-                obs.join("\n")
-            } else {
-                "".to_string()
-            }
-        }).unwrap_or("".to_string());
+                    obs.into_iter()
+                        .map(|s| {
+                            let ob = world.order_books.get(&s).unwrap();
+                            let spread = if ob.bids.len() > 0 && ob.asks.len() > 0 {
+                                let best_bid = ob.bids.iter().next().unwrap().price;
+                                let best_ask = ob.asks.iter().next().unwrap().price;
+                                format!("{}", ((best_ask - best_bid) * 100.0))
+                            } else {
+                                "".to_string()
+                            };
+                            format!(
+                                "{s:<8} | {spread:.4}"
+                            )
+                        })
+                        .collect::<Vec<String>>()
+                        .join("\n")
+                } else {
+                    "".to_string()
+                }
+            })
+            .unwrap_or("".to_string());
 
         frame.render_widget(
-            Paragraph::new(world)
-                .block(Block::bordered().title("World")),
+            Paragraph::new(world).block(Block::bordered().title("World")),
             world_area,
         );
 
         frame.render_widget(
-            Paragraph::new("middle")
-                .block(Block::bordered().title("middle"))
-                .centered(),
+            Paragraph::new("").block(Block::bordered().title("Graphs")),
             graph_area,
         );
 
         frame.render_widget(
-            Paragraph::new("right")
-                .block(Block::bordered().title("right"))
-                .centered(),
+            Paragraph::new("").block(Block::bordered().title("Orders")),
             orders_area,
         );
 
         frame.render_widget(
-            Paragraph::new("right")
-                .block(Block::bordered().title("right"))
+            Paragraph::new("")
+                .block(Block::bordered().title("Fills"))
                 .centered(),
             fills_area,
         );
 
         // map all of fulls to FullOrderBook vector
-        let fulls = self.streams.get("fulls").unwrap().iter().filter_map(|stream| {
-            if let StreamObject::Event(event) = stream {
-                let receive_time = (event.receive_time / 1000) as i64;
-                let nanos = ((event.receive_time % 1000) * 1000000) as u32;
-                let time = chrono::DateTime::from_timestamp(receive_time, nanos).unwrap().format("%H:%M:%S%.3f").to_string();
-                Some(format!("{} | {}", time, event.symbol))
-            } else {
-                None
-            }
-        }).collect::<Vec<_>>().join("\n");
+        let fulls = self
+            .streams
+            .get("fulls")
+            .unwrap()
+            .iter()
+            .filter_map(|stream| {
+                if let StreamObject::Event(event) = stream {
+                    let receive_time = (event.receive_time / 1000) as i64;
+                    let nanos = ((event.receive_time % 1000) * 1000000) as u32;
+                    let time = chrono::DateTime::from_timestamp(receive_time, nanos)
+                        .unwrap()
+                        .format("%H:%M:%S%.3f")
+                        .to_string();
+                    Some(format!("{} | {}", time, event.symbol))
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
 
-        let fulls_offset = self.streams.get("fulls").unwrap().len().saturating_sub(fulls_area.height as usize - 2);
+        let fulls_offset = self
+            .streams
+            .get("fulls")
+            .unwrap()
+            .len()
+            .saturating_sub(fulls_area.height as usize - 2);
 
         frame.render_widget(
             Paragraph::new(fulls)
@@ -244,19 +286,46 @@ impl App {
             fulls_area,
         );
 
+        let partials = self
+            .streams
+            .get("partials")
+            .unwrap()
+            .iter()
+            .filter_map(|stream| {
+                if let StreamObject::Event(event) = stream {
+                    let receive_time = (event.receive_time / 1000) as i64;
+                    let nanos = ((event.receive_time % 1000) * 1000000) as u32;
+                    let time = chrono::DateTime::from_timestamp(receive_time, nanos)
+                        .unwrap()
+                        .format("%H:%M:%S%.3f")
+                        .to_string();
 
-        let partials = self.streams.get("partials").unwrap().iter().filter_map(|stream| {
-            if let StreamObject::Event(event) = stream {
-                let receive_time = (event.receive_time / 1000) as i64;
-                let nanos = ((event.receive_time % 1000) * 1000000) as u32;
-                let time = chrono::DateTime::from_timestamp(receive_time, nanos).unwrap().format("%H:%M:%S%.3f").to_string();
-                Some(format!("{} | {}", time, event.symbol))
-            } else {
-                None
-            }
-        }).collect::<Vec<_>>().join("\n");
+                    let partial = if let EventType::PartialOrderBook(ob) = &event.event {
+                        ob
+                    } else {
+                        panic!("Expected PartialOrderBook event")
+                    };
 
-        let partials_offset = self.streams.get("partials").unwrap().len().saturating_sub(partials_area.height as usize - 2);
+                    let bids_len = partial.bids.len();
+                    let asks_len = partial.asks.len();
+
+                    Some(format!(
+                        "{} | {:<10} | Bids: {:>4} | Asks: {:>4}",
+                        time, event.symbol, bids_len, asks_len
+                    ))
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        let partials_offset = self
+            .streams
+            .get("partials")
+            .unwrap()
+            .len()
+            .saturating_sub(partials_area.height as usize - 2);
         frame.render_widget(
             Paragraph::new(partials)
                 .scroll((partials_offset as u16, 0))
@@ -279,7 +348,7 @@ impl App {
                 _ => {}
             }
         }
-        
+
         Ok(())
     }
 
