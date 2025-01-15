@@ -163,37 +163,51 @@ impl App {
             .direction(Direction::Vertical)
             .constraints(vec![
                 Constraint::Length(3),
-                Constraint::Fill(2),
                 Constraint::Fill(1),
             ])
             .split(frame.area());
 
-        let middle_layout = Layout::default()
+        let main_layout = Layout::default()
             .direction(Direction::Horizontal)
             .constraints(vec![
                 Constraint::Fill(1),
-                Constraint::Fill(2),
-                Constraint::Fill(1),
+                Constraint::Fill(3),
             ])
             .split(master_layout[1]);
 
-        let middle_right_layout = Layout::default()
+        let main_right = Layout::default()
             .direction(Direction::Vertical)
-            .constraints(vec![Constraint::Fill(1), Constraint::Fill(1)])
-            .split(middle_layout[2]);
+            .constraints(vec![
+                Constraint::Fill(1),
+                Constraint::Fill(1),
+            ])
+            .split(main_layout[1]);
 
-        let bottom_layout = Layout::default()
+        let main_right_top = Layout::default()
             .direction(Direction::Horizontal)
-            .constraints(vec![Constraint::Fill(1), Constraint::Fill(1)])
-            .split(master_layout[2]);
+            .constraints(vec![
+                Constraint::Ratio(1, 2),
+                Constraint::Ratio(1, 2),
+            ])
+            .split(main_right[0]);
+
+        let main_right_bottom = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints(vec![
+                Constraint::Ratio(1, 2),
+                Constraint::Ratio(1, 2),
+            ])
+            .split(main_right[1]);
+
 
         let header_area = master_layout[0];
-        let world_area = middle_layout[0];
-        let graph_area = middle_layout[1];
-        let orders_area = middle_right_layout[0];
-        let fills_area = middle_right_layout[1];
-        let fulls_area = bottom_layout[0];
-        let partials_area = bottom_layout[1];
+        let world_area = main_layout[0];
+
+        let orders_area = main_right_top[0];
+        let fills_area = main_right_top[1];
+
+        let fulls_area = main_right_bottom[0];
+        let partials_area = main_right_bottom[1];
 
         frame.render_widget(
             Paragraph::new("top")
@@ -229,10 +243,6 @@ impl App {
             world_area,
         );
 
-        frame.render_widget(
-            Paragraph::new("").block(Block::bordered().title("Graphs")),
-            graph_area,
-        );
 
         let open_orders = self
             .streams
