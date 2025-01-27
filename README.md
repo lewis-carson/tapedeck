@@ -1,31 +1,18 @@
 # tapedeck
 
-A toolkit to record and replay millisecond-level Binance order book data.
+I first started developing tapedeck due to the lack of options for recording high quality order book data from cryptocurrency exchanges. I wanted to record order book data in a way that was easy to replay and analyse. I also wanted to be able to record data from multiple symbols at the same time and replay them in sync. Right now only Binance is supported but other exchanges arae on the way.
 
-tapedeck is built to be modular - there are three ways to interact with the tools provided.
+I started developing tapedeck - it's built to be modular, and each tool "snaps" together to allow you to form pipelines of data processing.
 
-- `record`: records timestamped order book data to data/ directory. Serialised using json to be easily read by other tools
-- `interleave`: takes n order book data files and interleaves them based on timestamp. Useful combining data from multiple ticker symbols
-- `accumulate`: deserialises the data stream, builds a full order book from partial updates and replays the order book back (in the same order as the original data)
+The entire thing is built on Unix pipes. While this might seem like a strange choice, it's makes for pretty reliable transport of event streams.
 
-For example, you could:
-- `record` to record order book data into a directory
-- `record > interleave` to playback multiple order books at the same time to stdout
-- `record > interleave > accumulate > strategy (using replay library)` to replay multiple interleaved order books at the same time
+tapdeck uses `just` to manage how its commands are run.
 
-## Usage
+Here's a quickstart guide on some of the things you might want to do with tapedeck:
 
-Install:
-
+Record data from Binance:
 ```bash
-just install-all
-```
-
-Record:
-
-```bash
-mkdir data/
-record data/
+just record data/
 ```
 
 Play back + accumulate full order books:
@@ -37,6 +24,7 @@ Stream live data from `server` + accumulate full order books:
 ```bash
 ssh server -t 'tail -fq /path/to/data/*' | accumulate
 ```
+
 
 Stream live data from `server` + accumulate full order books + extract symbols and midpoints:
 ```bash
@@ -51,6 +39,12 @@ ssh server 'tail -fq /path/to/data/*'
     )/2
     )
 }'
+```
+
+Spin up a terminal dashboard which listens to an event stream and displays some key information:
+
+```bash
+just run watch data/*
 ```
 
 ## Other Notes
